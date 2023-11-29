@@ -8,7 +8,7 @@
 
 ```sh
 # Creating a CatalogSource in the `openshift-marketplace` namespace
-kubectl apply -f examples/ocp/00-cs.yaml
+kubectl apply -f ocp /00-CatalogSource.yaml
 
 # Wait for the skupper-operator catalog pod to be running
 kubectl -n openshift-marketplace get pods | grep skupper-operator
