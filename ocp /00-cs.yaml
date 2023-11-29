@@ -1,0 +1,8 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: CatalogSource
+metadata:
+  name: skupper-operator
+  namespace: openshift-marketplace
+spec:
+  image: quay.io/skupper/skupper-operator-index:v1.5.0
+  sourceType: grpc
