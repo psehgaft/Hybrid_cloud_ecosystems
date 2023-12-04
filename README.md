@@ -1,5 +1,10 @@
 # Hybrid_cloud_ecosystems
 
+```vars.yml
+username: {{ user }}
+
+```
+
 ## Deploy Submariner
 
 ## Configure Submariner
@@ -7,17 +12,20 @@
 ## Deploy Skupper Operator
 
 ```sh
+# Create a Project
+oc new-project "{{ username }}"
+
 # Creating a CatalogSource in the `openshift-marketplace` namespace
-kubectl apply -f ocp /00-CatalogSource.yaml
+oc apply -f ocp/00-CatalogSource.yaml
 
 # Wait for the skupper-operator catalog pod to be running
-kubectl -n openshift-marketplace get pods | grep skupper-operator
+oc -n openshift-marketplace get pods | grep skupper-operator
 
 # Create an OperatorGroup in the `my-namespace` namespace
-kubectl apply -f examples/ocp/10-og.yaml
+oc apply -f ocp/10-OperatorGroup.yaml
 
 # Create a Subscription in the `my-namespace` namespace
-kubectl apply -f examples/ocp/20-sub.yaml
+oc apply -f ocp/20-Subscription.yaml
 ```
 
 ## Configure Skupper

@@ -1,0 +1,9 @@
+---
+apiVersion: config.openshift.io/v1
+kind: Project
+metadata:
+  name: skupper-operator
+  namespace: "{{ username }}"
+spec:
+  projectRequestTemplate:
+    name: "{{ username }}"
