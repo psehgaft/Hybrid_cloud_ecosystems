@@ -1,0 +1,10 @@
+---
+username: user1 # "{{ user }}"
+subctl_cli_url: "https://get.submariner.io"
+submariner_path: "$PATH:~/.local/bin"
+
+# ACM
+acm_channel: release-2.9
+acm_source: redhat-operators
+acm_version: 2.4.2
+acm_secret_name: acm-secret

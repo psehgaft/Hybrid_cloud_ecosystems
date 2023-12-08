@@ -1,0 +1,117 @@
+- name: Deploying hybrid cloud ecosystems lbs
+  hosts: localhost
+  become: false
+  gather_facts: true
+  vars_files:
+    - vars/vars.yml
+
+  tasks:
+####################################################################
+# Deploy ACM on Openshift
+####################################################################
+  - name: Create a project open-cluster-management
+    community.kubernetes.k8s:
+      state: present
+      resource_definition:
+        apiVersion: project.openshift.io/v1
+        kind: Project
+        metadata:
+          name: open-cluster-management
+    tags:
+    - acm
+    - full
+
+  - name: Deploy OperatorGroup 
+    community.kubernetes.k8s:
+      state: present
+      src: "acm/acm-operatorgroup.yml"
+    tags:
+    - acm
+    - full
+
+  - name: Deploy Subscription 
+    community.kubernetes.k8s:
+      state: present
+      src: "acm/acm-subscription.yml"
+    tags:
+    - acm
+    - full
+
+ # - name: Get installplan
+ #   shell:
+ #     cmd: oc get installplan -o=jsonpath='{.items[1].metadata.name}' -n open-cluster-management
+ #   register: acm_installplan
+
+ # - name: Patch installplan
+ #   shell:
+ #     cmd: oc patch installplan "{{ acm_installplan.stdout }}" --type merge --patch '{"spec":{"approved":true}}'
+    
+  - name: Deploy MultiClusterHub 
+    community.kubernetes.k8s:
+      state: present
+      src: "acm/acm-multicluster.yml"
+    tags:
+    - acm
+    - full
+  
+  - name: Create a project open-cluster-management
+    community.kubernetes.k8s:
+      state: present
+      resource_definition:
+        apiVersion: project.openshift.io/v1
+        kind: Project
+        metadata:
+          name: managed-cluster
+    tags:
+    - acm
+    - full
+
+  - name: Label namespace managed-cluster
+    shell:
+      cmd: oc label namespace managed-cluster cluster.open-cluster-management.io/managedCluster=managed-cluster
+    tags:
+    - acm
+    - full
+
+  - name: Deploy ManagedCluster 
+    community.kubernetes.k8s:
+      state: present
+      src: "acm/acm-managedcluster.yml"
+    tags:
+    - acm
+    - full
+
+  - name: Deploy KlusterletAddonConfig 
+    community.kubernetes.k8s:
+      state: present
+      src: "acm/acm-kusterletaddonconfig.yml"
+    tags:
+    - acm
+    - full
+
+####################################################################
+# Deploy ACS on Openshift
+####################################################################
+  - name: Create a project open-cluster-management
+    community.kubernetes.k8s:
+      state: present
+      resource_definition:
+        apiVersion: project.openshift.io/v1
+        kind: Project
+        metadata:
+          name: rhacs-operator
+    tags:
+    - acs
+    - full
+
+  - name: Deploy KlusterletAddonConfig 
+    community.kubernetes.k8s:
+      state: present
+      src: "acs/policy-acs-operator-secured-clusters.yml"
+    tags:
+    - acs
+    - full
+
+  
+
+
