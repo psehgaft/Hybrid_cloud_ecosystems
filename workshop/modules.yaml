@@ -1,0 +1,76 @@
+modules:
+  environment:
+    name: Environment Overview
+  installation:
+    name: Installation and Verification
+  app-mgmt-basics:
+    name: Application Management Basics
+  app-storage-basics:
+    name: Application Storage Basics
+    requires:
+      - app-mgmt-basics
+  machinesets:
+    name: MachineSets, Machines, and Nodes
+  infra-nodes:
+    name: Infrastructure Nodes and Operators
+  logging-with-loki:
+    name: OpenShift Logging with Loki
+  ldap-groupsync:
+    name: External (LDAP) Authentication Providers, Users, and Groups
+  monitoring-basics:
+    name: OpenShift Monitoring with Prometheus
+  template-quota-limits:
+    name: Project Template, Quota, and Limits
+  networking:
+    name: OpenShift Networking and NetworkPolicy
+  disabling-project-self-provisioning:
+    name: Disabling Project Self-Provisioning
+  clusterresourcequota:
+    name: Cluster Resource Quotas
+  taints-and-tolerations:
+    name: Taints and Tolerations
+  windows-containers:
+    name: Windows Containers
+  acs-vulnerability:
+    name: Vulnerability Scanning with ACS
+  acs-devsecops:
+    name: DevSecOps with ACS
+  acm-multicluster:
+    name: Multicluster management with ACM
+  summit_intro:
+    name: Workshop Introduction
+  summit_acm:
+    name: ACM - Cluster and Lifecycle Management
+  summit_acs_1_intro:
+    name: ACS - Introduction and Vulnerability Management Walkthrough
+  summit_acs_2_runtime:
+    name: ACS - Runtime Enforcement
+  summit_extra:
+    name: Extra Credit
+  summit_ldap:
+    name: Admin Ops - External (LDAP) Authentication Providers, Users, and Groups
+  summit_installation:
+    name: Admin Ops - Installation and Verification
+  summit_environment:
+    name: Admin Ops - Environment Overview
+  acm-multicluster-412:
+    name: Multicluster management with ACM (4.14)
+  acs-vulnerability-412:
+    name: Vulnerability Scanning with ACS (4.14)
+  acs-devsecops-412:
+    name: DevSecOps with ACS (4.14)
+  
+config:
+    template_engine: liquid.js  
+    vars:
+      - name: SSH_PASSWORD
+      - name: SSH_USERNAME
+      - name: ENVIRONMENT
+        value: "Amazon Web Services"
+      - name: API_URL
+      - name: MASTER_URL
+      - name: KUBEADMIN_PASSWORD
+      - name: BASTION_FQDN
+      - name: GUID
+      - name: ROUTE_SUBDOMAIN
+      - name: HOME_PATH

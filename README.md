@@ -52,17 +52,88 @@ It is important to address these problems with a strategic approach and consider
 
 ![Open Hybrid Ecosystems](./images/hybrid-microservices-ecosystems.png)
 
-# LAB
+### AWS
+This lab is designed to run on an OpenShift 4 cluster that has been completely installed by the new installer. You will need access to AWS with sufficient permissions and limits to deploy the 3 masters, 4-6 regular nodes,
+and NVME-equipped nodes for storage.
 
-## Pre-reqs
+Check out the
+[documentation](https://docs.openshift.com/container-platform/latest/installing/installing_aws/installing-aws-default.html)
+for _Installing on AWS_.
+
+### OpenShift 4
+At this time an OpenShift 4 cluster can be obtained by visiting
+https://try.openshift.com -- a free "subscription" to / membership in the
+developer program is required.
+
+# Deploying the Lab Guide
+
+Deploying the lab guide will take three steps. First, you will need to get
+information about your cluster. Second, you will build a container based on your lab.
+Third, you will deploy the lab guide using the information you found so that proper
+URLs and references are automatically displayed in the guide.
+
+## Requirements / Prerequisites
+
+Most of the information can be found in the output of the installer.
+
+### Requirements
+
+* Python (3.5.3)
+* awscli (1.11.109-2.fc25) Fedora
+* click (6.7)
+* pip (9.0.1)
+* setuptools (36.2.4)
+* wheel (0.30.0a0)
+* ansible (7.7.0-1)
 
 <details>
-<summary> Install ansible </summary>
+<summary> Install packages </summary>
 
 ```sh
 sudo dnf install -y ansible
+sudo dnf install -y awscli awscli2
+sudo dnf install -y python pip python3-wheel python3-click 
+sudo dnf install -y setuptool
 ```
+</details>
 
+<details>
+<summary> Required Environment Variables </summary>
+
+#### Explaination and examples
+- `API_URL` - URL to access API of the cluster
+    - `https://api.cluster-gu1d.sandbox101.opentlc.com:6443`
+- `MASTER_URL` - Master Console URL
+    - `http://console-openshift-console.apps.cluster-gu1d.sandbox101.opentlc.com`
+- `KUBEADMIN_PASSWORD` - Password for `kubeadmin`
+- `SSH_PASSWORD` - password for ssh into bastion
+- `ROUTE_SUBDOMAIN` - Subdomain that apps will reside on
+    - `apps.cluster-gu1d.sandbox101.opentlc.com:6443`
+    - `apps.mycluster.company.com`
+
+Specific to Red Hat internal systems
+- `GUID` - GUID
+    - `gu1d`
+- `BASTION_FQDN` - Bastion Domain Name
+    - `bastion.gu1d.sandbox101.opentlc.com`
+
+Create a file called `workshop-settings.sh` using the values of your environment. Here is an example.
+
+> :warning: For `export` ensure [special characters](http://mywiki.wooledge.org/BashGuide/SpecialCharacters) are escaped (ie. use `\!` in place of `!`).
+
+```bash
+export API_URL=https://api.openshift4.example.com:6443
+export MASTER_URL=https://console-openshift-console.apps.openshift4.example.com
+export KUBEADMIN_PASSWORD=IqJK7-o3hYR-ZTr6c-7sztN
+export SSH_USERNAME=lab-user
+export SSH_PASSWORD=apassword
+export BASTION_FQDN=foo.bar.com
+export GUID=XXX
+export ROUTE_SUBDOMAIN=apps.openshift4.example.com
+export HOME_PATH=/opt/app-root/src
+export USER=[asigned user]
+export SUBMARINER-PATH="$PATH:~/.local/bin"
+```
 </details>
 <details>
 <summary> vars.yml</summary>
@@ -84,10 +155,40 @@ sudo dnf install -y ansible
 ansible-playbook submariner/submariner-install.yml
 ```
 </details>
+<details>
+
+<summary> Get materials </summary>
+
+First, clone the repo
+
+> **NOTE** Remember to checkout the branch you want to test against
+
+```shell
+git clone https://github.com/openshiftdemos/openshift-ops-workshops
+```
+
+Next, Build a container using the repo/branch you checked out.
+
+```shell
+cd openshift-ops-workshops
+export QUAY_USER=myusername
+export BRANCH=$(git branch --show-current)
+podman build -t quay.io/${QUAY_USER}/lab-sample-workshop:${BRANCH} .
+```
+
+Now, login to quay (it's free to sign up) or another registry your cluster has access to.
+
+```shell
+podman login quay.io
+```
+
+</details>
+
+
 
 ## Management Complexity
 
-**_NOTE:_** This part of the laboratory has already been provisioned, to focus on the deployment of the ecosystem's own services.
+> **_NOTE:_** This part of the laboratory has already been provisioned, to focus on the deployment of the ecosystem's own services.
 
 <details>
 <summary> Deploy Advanced Cluster Management for Kubernetes </summary>
@@ -116,7 +217,7 @@ ansible-playbook lab-deployment.yml --tags acm
 
 ## Security and Data Protection
 
-**_NOTE:_** This part of the laboratory has already been provisioned, to focus on the deployment of the ecosystem's own services.
+> **_NOTE:_** This part of the laboratory has already been provisioned, to focus on the deployment of the ecosystem's own services.
 
 <details>
 <summary> Deploy Advanced Cluster Security for Kubernetes </summary>
@@ -144,7 +245,7 @@ ansible-playbook lab-deployment.yml --tags oadp
 
 ## Monitoring and Follow-up
 
-**_NOTE:_** This part of the laboratory has already been provisioned, to focus on the deployment of the ecosystem's own services.
+> **_NOTE:_** This part of the laboratory has already been provisioned, to focus on the deployment of the ecosystem's own services.
 
 <details>
 <summary> Deploy Openshift Monitoring </summary>
@@ -175,6 +276,18 @@ ansible-playbook lab-deployment.yml --tags thanos
 ## Duplication of Functionalities and Waste of Resources
 
 ### Deploy applications
+
+<details>
+<summary> Create Proyects </summary>
+
+Create several Projects for deploy applications
+
+```vars.yml
+oc adm new-project app-dev-$USER --display-name="Application Development"
+oc adm new-project app-test-$USER --display-name="Application Testing"
+oc adm new-project app-prod-$USER --display-name="Application Production"
+```
+</details>
 
 ### Scenarios
 

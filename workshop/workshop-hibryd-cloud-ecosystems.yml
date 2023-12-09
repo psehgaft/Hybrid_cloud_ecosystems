@@ -1,0 +1,21 @@
+name: Hybrid cloud ecosystems
+
+modules:
+  activate:
+  - environment
+  - installation
+  - app-mgmt-basics
+  - app-storage-basics
+  - machinesets
+  - infra-nodes
+  - logging-with-loki
+  - ldap-groupsync
+  - monitoring-basics
+  - template-quota-limits
+  - networking
+  - disabling-project-self-provisioning
+  - clusterresourcequota
+  - taints-and-tolerations
+  - acs-vulnerability-4-1
+  - acs-devsecops-4-1
+  - acm-multicluster-2-7
