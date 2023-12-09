@@ -1,0 +1,269 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/component: query-layer
+    app.kubernetes.io/instance: thanos-querier
+    app.kubernetes.io/managed-by: cluster-monitoring-operator
+    app.kubernetes.io/name: thanos-query
+    app.kubernetes.io/part-of: openshift-monitoring
+    app.kubernetes.io/version: 0.32.5
+  name: thanos-querier
+  namespace: openshift-monitoring
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: query-layer
+      app.kubernetes.io/instance: thanos-querier
+      app.kubernetes.io/name: thanos-query
+      app.kubernetes.io/part-of: openshift-monitoring
+  strategy:
+    rollingUpdate:
+      maxUnavailable: 1
+  template:
+    metadata:
+      annotations:
+        target.workload.openshift.io/management: '{"effect": "PreferredDuringScheduling"}'
+      labels:
+        app.kubernetes.io/component: query-layer
+        app.kubernetes.io/instance: thanos-querier
+        app.kubernetes.io/managed-by: cluster-monitoring-operator
+        app.kubernetes.io/name: thanos-query
+        app.kubernetes.io/part-of: openshift-monitoring
+        app.kubernetes.io/version: 0.32.5
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                app.kubernetes.io/component: query-layer
+                app.kubernetes.io/instance: thanos-querier
+                app.kubernetes.io/name: thanos-query
+                app.kubernetes.io/part-of: openshift-monitoring
+            topologyKey: kubernetes.io/hostname
+      containers:
+      - args:
+        - query
+        - --grpc-address=127.0.0.1:10901
+        - --http-address=127.0.0.1:9090
+        - --log.format=logfmt
+        - --query.replica-label=prometheus_replica
+        - --query.replica-label=thanos_ruler_replica
+        - --endpoint=dnssrv+_grpc._tcp.prometheus-operated.openshift-monitoring.svc.cluster.local
+        - --query.auto-downsampling
+        - --store.sd-dns-resolver=miekgdns
+        - --grpc-client-tls-secure
+        - --grpc-client-tls-cert=/etc/tls/grpc/client.crt
+        - --grpc-client-tls-key=/etc/tls/grpc/client.key
+        - --grpc-client-tls-ca=/etc/tls/grpc/ca.crt
+        - --grpc-client-server-name=prometheus-grpc
+        - --rule=dnssrv+_grpc._tcp.prometheus-operated.openshift-monitoring.svc.cluster.local
+        - --target=dnssrv+_grpc._tcp.prometheus-operated.openshift-monitoring.svc.cluster.local
+        env:
+        - name: HOST_IP_ADDRESS
+          valueFrom:
+            fieldRef:
+              fieldPath: status.hostIP
+        image: quay.io/thanos/thanos:v0.32.5
+        imagePullPolicy: IfNotPresent
+        name: thanos-query
+        ports:
+        - containerPort: 9090
+          name: http
+        resources:
+          requests:
+            cpu: 10m
+            memory: 12Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: false
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
+        terminationMessagePolicy: FallbackToLogsOnError
+        volumeMounts:
+        - mountPath: /etc/tls/grpc
+          name: secret-grpc-tls
+      - args:
+        - --secure-listen-address=0.0.0.0:9091
+        - --upstream=http://127.0.0.1:9090
+        - --config-file=/etc/kube-rbac-proxy/config.yaml
+        - --tls-cert-file=/etc/tls/private/tls.crt
+        - --tls-private-key-file=/etc/tls/private/tls.key
+        - --tls-cipher-suites=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305
+        - --ignore-paths=/-/healthy,/-/ready
+        image: quay.io/brancz/kube-rbac-proxy:v0.15.0
+        livenessProbe:
+          failureThreshold: 4
+          httpGet:
+            path: /-/healthy
+            port: 9091
+            scheme: HTTPS
+          initialDelaySeconds: 5
+          periodSeconds: 30
+        name: kube-rbac-proxy-web
+        ports:
+        - containerPort: 9091
+          name: web
+        readinessProbe:
+          failureThreshold: 20
+          httpGet:
+            path: /-/ready
+            port: 9091
+            scheme: HTTPS
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        resources:
+          requests:
+            cpu: 1m
+            memory: 15Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        terminationMessagePolicy: FallbackToLogsOnError
+        volumeMounts:
+        - mountPath: /etc/tls/private
+          name: secret-thanos-querier-tls
+        - mountPath: /etc/kube-rbac-proxy
+          name: secret-thanos-querier-kube-rbac-proxy-web
+      - args:
+        - --secure-listen-address=0.0.0.0:9092
+        - --upstream=http://127.0.0.1:9095
+        - --config-file=/etc/kube-rbac-proxy/config.yaml
+        - --tls-cert-file=/etc/tls/private/tls.crt
+        - --tls-private-key-file=/etc/tls/private/tls.key
+        - --tls-cipher-suites=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305
+        - --allow-paths=/api/v1/query,/api/v1/query_range,/api/v1/labels,/api/v1/label/*/values,/api/v1/series
+        image: quay.io/brancz/kube-rbac-proxy:v0.15.0
+        name: kube-rbac-proxy
+        ports:
+        - containerPort: 9092
+          name: tenancy
+        resources:
+          requests:
+            cpu: 1m
+            memory: 15Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        terminationMessagePolicy: FallbackToLogsOnError
+        volumeMounts:
+        - mountPath: /etc/tls/private
+          name: secret-thanos-querier-tls
+        - mountPath: /etc/kube-rbac-proxy
+          name: secret-thanos-querier-kube-rbac-proxy
+      - args:
+        - --insecure-listen-address=127.0.0.1:9095
+        - --upstream=http://127.0.0.1:9090
+        - --label=namespace
+        - --enable-label-apis
+        - --error-on-replace
+        image: quay.io/prometheuscommunity/prom-label-proxy:v0.7.0
+        name: prom-label-proxy
+        resources:
+          requests:
+            cpu: 1m
+            memory: 15Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        terminationMessagePolicy: FallbackToLogsOnError
+      - args:
+        - --secure-listen-address=0.0.0.0:9093
+        - --upstream=http://127.0.0.1:9095
+        - --config-file=/etc/kube-rbac-proxy/config.yaml
+        - --tls-cert-file=/etc/tls/private/tls.crt
+        - --tls-private-key-file=/etc/tls/private/tls.key
+        - --tls-cipher-suites=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305
+        - --allow-paths=/api/v1/rules,/api/v1/alerts
+        image: quay.io/brancz/kube-rbac-proxy:v0.15.0
+        name: kube-rbac-proxy-rules
+        ports:
+        - containerPort: 9093
+          name: tenancy-rules
+        resources:
+          requests:
+            cpu: 1m
+            memory: 15Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        terminationMessagePolicy: FallbackToLogsOnError
+        volumeMounts:
+        - mountPath: /etc/tls/private
+          name: secret-thanos-querier-tls
+        - mountPath: /etc/kube-rbac-proxy
+          name: secret-thanos-querier-kube-rbac-proxy-rules
+      - args:
+        - --secure-listen-address=0.0.0.0:9094
+        - --upstream=http://127.0.0.1:9090
+        - --config-file=/etc/kube-rbac-proxy/config.yaml
+        - --tls-cert-file=/etc/tls/private/tls.crt
+        - --tls-private-key-file=/etc/tls/private/tls.key
+        - --tls-cipher-suites=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305
+        - --client-ca-file=/etc/tls/client/client-ca.crt
+        - --allow-paths=/metrics
+        image: quay.io/brancz/kube-rbac-proxy:v0.15.0
+        name: kube-rbac-proxy-metrics
+        ports:
+        - containerPort: 9094
+          name: metrics
+        resources:
+          requests:
+            cpu: 1m
+            memory: 15Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        terminationMessagePolicy: FallbackToLogsOnError
+        volumeMounts:
+        - mountPath: /etc/tls/private
+          name: secret-thanos-querier-tls
+        - mountPath: /etc/kube-rbac-proxy
+          name: secret-thanos-querier-kube-rbac-proxy-metrics
+        - mountPath: /etc/tls/client
+          name: metrics-client-ca
+          readOnly: true
+      nodeSelector:
+        kubernetes.io/os: linux
+      priorityClassName: system-cluster-critical
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccountName: thanos-querier
+      terminationGracePeriodSeconds: 120
+      volumes:
+      - name: secret-thanos-querier-tls
+        secret:
+          secretName: thanos-querier-tls
+      - name: secret-thanos-querier-kube-rbac-proxy
+        secret:
+          secretName: thanos-querier-kube-rbac-proxy
+      - name: secret-thanos-querier-kube-rbac-proxy-web
+        secret:
+          secretName: thanos-querier-kube-rbac-proxy-web
+      - name: secret-thanos-querier-kube-rbac-proxy-rules
+        secret:
+          secretName: thanos-querier-kube-rbac-proxy-rules
+      - name: secret-thanos-querier-kube-rbac-proxy-metrics
+        secret:
+          secretName: thanos-querier-kube-rbac-proxy-metrics
+      - configMap:
+          name: metrics-client-ca
+        name: metrics-client-ca

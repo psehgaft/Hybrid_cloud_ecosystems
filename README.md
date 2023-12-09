@@ -90,7 +90,7 @@ ansible-playbook submariner/submariner-install.yml
 **_NOTE:_** This part of the laboratory has already been provisioned, to focus on the deployment of the ecosystem's own services.
 
 <details>
-<summary> Deploy ACM </summary>
+<summary> Deploy Advanced Cluster Management for Kubernetes </summary>
 
 You can use either the OpenShift 4 web console's built-in OperatorHub or the OpenShift CLI to install ACM. The installation breaks down to six steps:
 
@@ -113,6 +113,72 @@ ansible-playbook lab-deployment.yml --tags acm
 ### Deploy Submariner
 
 ### Configure Submariner
+
+## Security and Data Protection
+
+**_NOTE:_** This part of the laboratory has already been provisioned, to focus on the deployment of the ecosystem's own services.
+
+<details>
+<summary> Deploy Advanced Cluster Security for Kubernetes </summary>
+
+When RHACM is available, you can create RHACM policies to deploy RHACS to your cluster fleet. This approach ensures that all fleet clusters are protected by RHACS.
+
+To implement RHACS, you must create two policies in RHACM, one for centralized services and one for protected cluster services. The policy to install centralized services must be applied to the hub cluster. The policy for installing protected cluster services must be applied to the clusters that you want RHACS to protect. You can achieve this separation by using a clusterSelector parameter of the PlacementRule object.
+
+```vars.yml
+ansible-playbook lab-deployment.yml --tags acs
+```
+</details>
+
+<details>
+<summary> Deploy Openshift Data Protection </summary>
+
+When RHACM is available, you can create RHACM policies to deploy RHACS to your cluster fleet. This approach ensures that all fleet clusters are protected by RHACS.
+
+To implement RHACS, you must create two policies in RHACM, one for centralized services and one for protected cluster services. The policy to install centralized services must be applied to the hub cluster. The policy for installing protected cluster services must be applied to the clusters that you want RHACS to protect. You can achieve this separation by using a clusterSelector parameter of the PlacementRule object.
+
+```vars.yml
+ansible-playbook lab-deployment.yml --tags oadp
+```
+</details>
+
+## Monitoring and Follow-up
+
+**_NOTE:_** This part of the laboratory has already been provisioned, to focus on the deployment of the ecosystem's own services.
+
+<details>
+<summary> Deploy Openshift Monitoring </summary>
+
+```vars.yml
+ansible-playbook lab-deployment.yml --tags acs
+```
+</details>
+<details>
+<summary> Deploy Openshift Logging </summary>
+
+```vars.yml
+ansible-playbook lab-deployment.yml --tags acs
+```
+</details>
+<details>
+<summary> Deploy Thanos </summary>
+
+```vars.yml
+ansible-playbook lab-deployment.yml --tags thanos
+```
+</details>
+
+
+## Testing and Continuous Deployment
+## Cultural and Organizational Change
+## Network Overload and Latency
+## Duplication of Functionalities and Waste of Resources
+
+### Deploy applications
+
+### Scenarios
+
+### Hybrid Cloud Balancing
 
 ### Deploy Skupper Operator
 
@@ -139,34 +205,6 @@ oc apply -f ocp/20-Subscription.yaml
 ```
 
 ### Configure Skupper
-
-## Security and Data Protection
-
-**_NOTE:_** This part of the laboratory has already been provisioned, to focus on the deployment of the ecosystem's own services.
-
-<details>
-<summary> Deploy ACS </summary>
-
-When RHACM is available, you can create RHACM policies to deploy RHACS to your cluster fleet. This approach ensures that all fleet clusters are protected by RHACS.
-
-To implement RHACS, you must create two policies in RHACM, one for centralized services and one for protected cluster services. The policy to install centralized services must be applied to the hub cluster. The policy for installing protected cluster services must be applied to the clusters that you want RHACS to protect. You can achieve this separation by using a clusterSelector parameter of the PlacementRule object.
-
-```vars.yml
-ansible-playbook lab-deployment.yml --tags acs
-```
-</details>
-
-## Monitoring and Follow-up
-## Testing and Continuous Deployment
-## Cultural and Organizational Change
-## Network Overload and Latency
-## Duplication of Functionalities and Waste of Resources
-
-### Deploy applications
-
-### Scenarios
-
-### Hybrid Cloud Balancing
 
 ### DRP
 

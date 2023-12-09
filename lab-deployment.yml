@@ -54,7 +54,7 @@
     - acm
     - full
   
-  - name: Create a project open-cluster-management
+  - name: Create a project managed-cluster
     community.kubernetes.k8s:
       state: present
       resource_definition:
@@ -92,7 +92,7 @@
 ####################################################################
 # Deploy ACS on Openshift
 ####################################################################
-  - name: Create a project open-cluster-management
+  - name: Create a project rhacs-operator
     community.kubernetes.k8s:
       state: present
       resource_definition:
@@ -104,7 +104,7 @@
     - acs
     - full
 
-  - name: Deploy KlusterletAddonConfig 
+  - name: Deploy ASC Policy
     community.kubernetes.k8s:
       state: present
       src: "acs/policy-acs-operator-secured-clusters.yml"
@@ -112,6 +112,50 @@
     - acs
     - full
 
-  
+####################################################################
+# Deploy OADP on Openshift
+####################################################################  
 
+  - name: Create a project open-cluster-management
+    community.kubernetes.k8s:
+      state: present
+      resource_definition:
+        apiVersion: project.openshift.io/v1
+        kind: Project
+        metadata:
+          name: openshift-adp
+    tags:
+    - oadp
+    - full
 
+  - name: Deploy OADP Policy 
+    community.kubernetes.k8s:
+      state: present
+      src: "oadp/policy-oadp.yaml"
+    tags:
+    - oadp
+    - full
+
+####################################################################
+# Deploy Thanos on Openshift
+####################################################################  
+
+  - name: Create a project openshift-monitoring
+    community.kubernetes.k8s:
+      state: present
+      resource_definition:
+        apiVersion: project.openshift.io/v1
+        kind: Project
+        metadata:
+          name: openshift-monitoring
+    tags:
+    - thanos
+    - full
+
+  - name: Deploy Thanos Policy 
+    community.kubernetes.k8s:
+      state: present
+      src: "thanos/thanos-deployment.yaml"
+    tags:
+    - thanos
+    - full
