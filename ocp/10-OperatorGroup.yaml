@@ -3,7 +3,7 @@ kind: OperatorGroup
 apiVersion: operators.coreos.com/v1
 metadata:
   name: skupper-operator
-  namespace: "{{ username }}"
+  namespace: open-ecosistems-cross-services
 spec:
   targetNamespaces:
-  - "{{ username }}"
+  - open-ecosistems-cross-services

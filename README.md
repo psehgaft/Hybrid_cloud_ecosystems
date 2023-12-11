@@ -737,7 +737,7 @@ oc get pods -n openshift-operators
 
 ![ACM DR policy selections](./images/MCO-drpolicy-selections.png)
 
-Note that the Replication policy will automatically be selected as async based on the OpenShift clusters selected and a Sync schedule will be available. The replication interval for this dr policy is 5 minutes. You can check by clicking 3 dots on the right side of drsync5m data policy and select Edit DR Policy. Please do not update anything here, once you review the content of the yaml file, just cancel the selection so that there is no update to the DR Policy.
+Note that the Replication policy will automatically be selected as async based on the OpenShift clusters selected and a Sync schedule will be available. The replication interval for this dr policy is 5 minutes. You can check by clicking 3 dots on the right side of *drsync5m* data policy and select Edit DR Policy. Please do not update anything here, once you review the content of the yaml file, just cancel the selection so that there is no update to the DR Policy.
 
 - Creating a new DR Policy also creates the two DRCluster resources and also the DRPolicy on the Hub cluster. In addition, when the initial DRPolicy is created the following will happen:
 
@@ -882,6 +882,21 @@ oc create -f thanos-object-storage.yaml -n pen-cluster-management-observability
 
 - Create the *MultiClusterObservability* custom resource for your managed clusters.  To do this create a  YAML file named multiclusterobservability_cr.yaml
 
+- Apply the observability YAML to your cluster by running the following command:
+
+```sh
+oc apply -f multiclusterobservability_cr.yaml
+```
+
+- Log in to the ACM console, and navigate to *Observe environments -> Overview.*
+- Click on the Grafana link in the top right to view the metrics from the managed clusters.  `Please note: it will take a few minutes for the metrics to become visible on the dashboard.`
+
+IMAGE TODO
+
+You should shortly see something like the below
+
+IMAGE TODO
+
 
 </details>
 
@@ -900,6 +915,193 @@ These steps are already executed for you during the lab setup except for the app
 
 </details>
 
+<details>
+<summary> Create Application On Primary </summary>
+
+**Go to the Hub OpenShift console.**
+
+This is a kubernetes platform from which you can create containerized applications. Part of this environment is the Red Hat Advanced Cluster Management (RHACM) platform along with Red Hat Openshift Disaster Recovery with ODF.
+
+1. To get started, you will need to access the RHACM plaftorm by clicking local-cluster from the left menu and then selecting All Clusters.
+
+2. Upon clicking the All Cluster option, you will be redirected to the RHACM console displaying your available clusters. There are 3 clusters available:
+
+    i. *local-cluster:* This is your management cluster where you will create, failover and relocate your application.
+
+    ii. *primary:* Your main cluster where your applications are initially deployed to.
+
+    iii. secondary: Your backup cluster where your applications are failed over to.
+
+3. You will now need to create your application which we will use in this workshop. Click on *Applications* on the left menu and click* Create application→Subscription*.
+
+4. Once in the Create application wizard, enter the following details:
+
+Name: globex
+Namespace: globex
+Under Repository location for resources:
+    Repository Types: Git
+    URL: https://github.com/psehgaft/globex.git
+    Branch: main    
+    Under Select clusters for application deployment:
+        Select Deploy application resources on clusters with all specified labels
+            Label: name
+            Value: primary
+    Click Create on the top right to create your application. This should create an ACM application subscription which in turn creates a Helm release which will deploy your application to the primary cluster.
+
+5. Go back to Applications and search for globex-app. This is where you will see the app deployment topology. Following are not part of existing deployment and hence not deployed. Hence they will be marked as not available: acivity-tracking, order-placement and recommendation-engine. The app is focused on catalog, inventor and UI.
+
+**Go to the Primary OpenShift OCP-01**
+
+1. Once logged in click *Networking→Routes* on the left menu. Ensure your selected project is *globex* and then click on the *Location* link of the *globex-ui* route. (Keep the route)
+
+2. Once you’ve clicked the link you will be redirected to globex online store front end. Select *Cool Stuff Store* at the top of the page.
+
+3. You are now going to get the route of globex-ui, copy and paste in a browser window to get the coolstore app UI. This is the same route you can see from previous step by login to OpenShift Console:
+
+```sh
+oc get route -n globex | grep globex-ui
+```
+4. A list of store items will be presented to you. Take note of the price of the first item Quarkus T-shirt. Later you will change the price before you initiate a failover and ensure that the new price carries over to the secondary cluster.
+
+</details>
+
+<details>
+<summary> Failover Application To Secondary </summary>
+
+**Go to the primary OpenShift OCP-01**
+
+1. You are now going to make an update to the price of one of the globex store items. This data is stored in a postgres database attached to a PVC which we will preserve during the failover. Update the price by running the below commands:
+
+```sh
+POD=$(oc get pods -n globex | grep catalog-database | awk '{print $1}')
+oc exec -it $POD -n globex -- psql --dbname catalog --command "update catalog set price = 15 where name = 'Quarkus T-shirt';"
+```
+2. Switch back to the Globex application and refresh the page. Select the last page (6) and notice that the price of the Quarkust T-shirt is now $15.00
+
+3. Return to the RHACM Hub console and then click Data *Services→Data policies* from the left menu.
+
+4. Click on the 3 dots on the *drsync5m* disaster recovery policy and select *Apply DRPolicy*.
+
+5. On the *Apply DRPolicy* popup, select the globex application and under *PVC label* enter *app=globex*. These options allow the globex application to be included in the DR policy and preserves any PVC’s with a label matching *app=globex*, in our case the PVC associated with the postgres database containing our prices. Click *Apply*.
+
+**Go to the secondary OpenShift OCP-02**
+
+1. You will now need to create the globex namespace in the secondary cluster and annotate it with the globex subscription name.
+
+```sh
+oc new-project globex || oc project globex
+oc annotate ns globex --overwrite=true apps.open-cluster-management.io/hosting-subscription=globex/globex-subscription-1
+```
+
+2. Switch back to the RHACM console and select *Applications* and filter on *Subscription*. Click the 3 dots at the end of the globex application and select *Failover application*.
+
+3. Provide the following details on the popup:
+
+    a. *Select policy*: drsync5m
+    b. *Target cluster*: secondary
+    c. *Select subscriptions group*: globex-subscription-1
+    d. Click Initiate
+
+> **_NOTE:_** The subscription group may not be in a ready state to select. Wait a few minutes and try again.
+
+**Go to the primary OpenShift OCP-01**
+
+1. In the globex namespace will start terminating as the app starts failing over. Also check that the PVC will be in terminating state as well. Ensure that PVC is terminated and not visible on the primary. Review the status of the pvc (terminating) and the cephblockpool on primary. The health may be temporary in warning state and then goes back to healthy state:
+
+```sh
+oc get cephblockpool ocs-storagecluster-cephblockpool -n openshift-storage -o jsonpath='{.status.mirroringStatus.summary}{"\n"}'
+```
+
+2. Check the pvc’s (persistent volumen claims) being terminated and eventually disappears.
+
+```sh
+oc get pvc -n globex
+```
+
+**Go to the secondary OpenShift OCP-02**
+
+1. Click *Workloads→Pods* on the left menu. Ensure your selected project is globex. Notice that the application pods have been recreated in this namespace.
+
+2. Next, click *Networking→Routes* on the left menu and then click on the Location link of the *globex-ui* route.
+
+3. Once you’ve clicked the link you will be redirected to globex online store front end. Select *Cool Stuff Store* at the top of the page.
+
+4. You are now going to get the route of globex-ui and copy the route for example globex-ui-globex.apps.cluster-flxz7-2.sandbox2418.opentlc.com and paste in a browser window to get the coolstore app UI. This is the same route you can see from previous step by login to OpenShift Console:
+
+```sh
+oc get route -n globex | grep globex-ui
+```
+
+5. On the Coolstore Globex UI, select the last page (6) and notice that the price of the Quarkust T-shirt is $15.00. Our data from the primary cluster has been preserved during the failover.
+
+6. Review the status of the pvc and the cephblockpool on secondary. The health may be temporary in warning state and then goes back to healthy state. You may also see *states:map[replaying:2]:*
+
+```sh
+oc get cephblockpool ocs-storagecluster-cephblockpool -n openshift-storage -o jsonpath='{.status.mirroringStatus.summary}{"\n"}'
+```
+
+```sh
+oc get pvc -n globex
+```
+
+> **_NOTE:_** For production environment or real life scenario, the applications routes will be updated in Global Load Balancer using automated way for e.g. using ansible to update GLB’s with the new updated routes post failover / relocate.
+
+</details>
+
+<details>
+<summary> Relocate Application To Primary </summary>
+
+You will now attempt to relocate/failback the application to the primary cluster. Before we do that, we want to ensure that any changes made on the secondary cluster are preserved when relocating back to the primary cluster.
+
+**Go to the secondary OpenShift OCP-02**
+
+1. You are again going to make an update to the price of the Quarkus T-shirt. Update the price by running the below commands:
+
+```sh
+POD=$(oc get pods -n globex | grep catalog-database | awk '{print $1}')
+oc exec -it $POD -n globex -- psql --dbname catalog --command "update catalog set price = 20 where name = 'Quarkus T-shirt';"
+```
+
+2. Confirm if the price has updated to by switching back to the Globex application on the secondary cluster and refresh the page. Select the last page (6) and notice that the price of the Quarkust T-shirt is now $20.00
+
+3. Go back to the Hub Cluster RHACM console and select *Applications* and filter on *Subscription*. 
+
+4. Click the 3 dots at the end of the globex application and select *Relocate application*.
+
+5. Provide the following details on the popup:
+
+    a. *Select policy:* drsync5m
+    b. *Target cluster:* primary
+    c. *Select subscriptions group:* globex-subscription-1
+    s. Click Initiate
+
+6. You will notice that the pods on the secondary cluster in the globex namespace will start terminating as the app starts relocating back to the primary cluster.
+
+7. Review the status of the pvc and the cephblockpool on secondary. The health may be temporary in warning state and then goes back to healthy state. You may also see states:map[replaying:2]:
+
+```sh
+oc get cephblockpool ocs-storagecluster-cephblockpool -n openshift-storage -o jsonpath='{.status.mirroringStatus.summary}{"\n"}'
+```
+
+**Go to the primary OpenShift OCP-01**
+
+1. Click *Workloads→Pods* on the left menu. Ensure your selected project is globex. Notice that the application pods have been recreated in this namespace. You will see the pods in primary once all the pvc’s complete termination in secondary cluster.
+
+2. Once you’ve clicked the link you will be redirected to globex online store front end. Select Cool Stuff Store at the top of the page.
+
+3. Select the last page (6) and notice that the price of the Quarkust T-shirt is still $20.00.
+
+4. Review the status of the pvc (terminating) and the cephblockpool on primary. The health may be temporary in warning state and then goes back to healthy state:
+
+```sh
+oc get cephblockpool ocs-storagecluster-cephblockpool -n openshift-storage -o jsonpath='{.status.mirroringStatus.summary}{"\n"}'
+
+
+oc get pvc -n globex
+```
+
+</details>
+
 ## 6. Cultural and Organizational Change
 
 > **_NOTE:_** This part of the laboratory has already been provisioned, to focus on the deployment of the ecosystem's own services. Items marked with a ^ have already been implemented.
@@ -909,7 +1111,7 @@ The importance of industry verticals can vary depending on the context, region, 
 <details>
 <summary> Open industries </summary>
 
-0. **(Open Ecosistems services) Generic/transversal microservices:** Generic and transversal microservices, common services to energize the ecosystems of the industries.
+0. **(Open Ecosistems services) Generic/Cross microservices:** Generic and cross microservices, common services to energize the ecosystems of the industries.
 
 1. **(Open IT and Open AI) Technology and IT:** This sector includes hardware, software, telecommunications and Internet-related companies. It has been a major driver of economic growth and innovation in recent decades.
 
@@ -1011,45 +1213,92 @@ IMAGE TODO
 
 </details>
 
-## 7. Network Overload and Latency
+## 7. Network Overload and Latency & Hybrid Cloud Balancing
 
 > **_NOTE:_** This part of the laboratory has already been provisioned, to focus on the deployment of the ecosystem's own services. Items marked with a ^ have already been implemented.
 
 <details>
-<summary> Hybrid Cloud Balancing </summary>
-
-<details>
-<summary> Deploy Skupper Operator </summary>
+<summary> ^ Deploy Skupper Operator (</summary>
 
 If you want to try a cluster-wide installation, you don't need to create the `OperatorGroup` as it is already defined at the destination namespaces, so you just need to create the subscription at the correct namespaces, see below.
 
+> **_NOTE:_**Note for cluster-wide installations
+
+If you want to try a cluster-wide installation, you don't need to create the `OperatorGroup` as it is already defined at the destination namespaces, so you just need to create the subscription at the correct namespaces, see below.
+
+Cluster-wide installation on OpenShift
+
+On OpenShift the `Subscription` needs to be defined in the `openshift-operators` namespace, like:
+
 ```sh
-# Create a Project
-oc new-project "{{ username }}"
-
-# Creating a CatalogSource in the `openshift-marketplace` namespace
-oc apply -f ocp/00-CatalogSource.yaml
-
-# Wait for the skupper-operator catalog pod to be running
-oc -n openshift-marketplace get pods | grep skupper-operator
-
-# Create an OperatorGroup in the `my-namespace` namespace
-oc apply -f ocp/10-OperatorGroup.yaml
-
-
-oc apply -f ocp /20-Subscription-cluster.yaml
-
-# Create a Subscription in the `my-namespace` namespace
-oc apply -f ocp/20-Subscription.yaml
+kubectl apply -f examples/ocp/20-sub-cluster-wide.yaml
 ```
+
 </details>
+
+<details>
+<summary> Validate skupper-operator is running </summary>
+
+Look at the pods running in your `open-ecosistems-cross-services` namespace now. You should 
+see a running pod for the `open-ecosistems-cross-controller`.
+
+```
+oc get pods -n open-ecosistems-cross-services
+NAME                                     READY   STATUS    RESTARTS   AGE
+open-ecosistems-cross-controller-d7b57964-gxms6   1/1     Running   0          39m
+```
+
+Now the Skupper Operator is running and you can create a site. 
+At this point with most Operators, you would create a CR, however 
+the Skupper Operator manages your
+Skupper site by watching a `ConfigMap` named exclusively `skupper-site`
+in the namespace where it is running (in this case the `open-ecosistems-cross-services` namespace).
+
 </details>
+
+<details>
+<summary> Creating a new skupper site </summary>
+
+Create a `ConfigMap` named `skupper-site` in the `my-namespace` namespace:
+
+```
+kubectl apply -f examples/skupper-site-interior.yaml
+```
+
+Once the `ConfigMap` is created, Skupper Site Controller will initialize
+your Skupper site and you can verify everything is running properly if you
+see the `skupper-router` and the `skupper-service-controller` pods running
+in the `my-namespace` namespace, in example:
+
+```
+kubectl -n my-namespace get pods
+NAME                                          READY   STATUS    RESTARTS   AGE
+skupper-router-8c6cc6d76-27562                1/1     Running   0          40s
+skupper-service-controller-57cdbb56c5-vc7s2   1/1     Running   0          34s
+skupper-site-controller-d7b57964-gxms6        1/1     Running   0          51m
+```
+
+You can now navigate to the Skupper console.
+
+```
+$ skupper -n <namespace> status
+```
+
+The namespace in the example YAML is `my-namespace`.
+
+Navigate to the `skupper` route and log in using the credentials you specified in YAML. The example YAML uses `admin/changeme`.
+
+
+For more information, visit the official [Skupper website](https://skupper.io)
+</details>
+
+
 
 ## 8. Duplication of Functionalities and Waste of Resources
 
 > **_NOTE:_** This part of the laboratory has already been provisioned, to focus on the deployment of the ecosystem's own services. Items marked with a ^ have already been implemented.
 
-0. **(Open Ecosistems services) Generic/transversal microservices:** Generic and transversal microservices, common services to energize the ecosystems of the industries.
+0. **(Open Ecosistems Cross services) Generic/cross microservices:** Generic and cross microservices, common services to energize the ecosystems of the industries.
 
 <details>
 <summary> Scenarios </summary>

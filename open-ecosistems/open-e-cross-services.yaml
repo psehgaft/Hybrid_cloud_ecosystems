@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: scross-services-01
+  namespace: open-ecosistems-cross-services
+data:
+  router-mode: interior
+  console-user: "admin"
+  console-password: "changeme"
+  console: "true"
+  flow-collector: "true"
