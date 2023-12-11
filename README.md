@@ -105,7 +105,7 @@ Red Hat OpenShift Data Foundation Regional Disaster Recovery (Regional-DR) solut
 
 Regional-DR is composed of Red Hat Advanced Cluster Management for Kubernetes and OpenShift Data Foundation components to provide application and data mobility across Red Hat OpenShift Container Platform clusters.
 
-> :note: Regional-DR is supported with OpenShift Data Foundation 4.14 and Red Hat Advanced Cluster Management for Kubernetes 2.9 combinations only.
+> **_NOTE:_** Regional-DR is supported with OpenShift Data Foundation 4.14 and Red Hat Advanced Cluster Management for Kubernetes 2.9 combinations only.
 
 OpenShift DR is a set of orchestrators to configure and manage stateful applications across a set of peer OpenShift clusters which are managed using RHACM and provides cloud-native interfaces to orchestrate the life-cycle of an application’s state on Persistent Volumes. These include:
 
@@ -126,6 +126,8 @@ information about your cluster. Second, you will build a container based on your
 Third, you will deploy the lab guide using the information you found so that proper
 URLs and references are automatically displayed in the guide.
 
+> **_NOTE:_** This part of the laboratory has already been provisioned, to focus on the deployment of the ecosystem's own services. Items marked with a ^ have already been implemented.
+
 ## Requirements / Prerequisites
 
 Most of the information can be found in the output of the installer.
@@ -141,7 +143,7 @@ Most of the information can be found in the output of the installer.
 * ansible (7.7.0-1)
 
 <details>
-<summary> Install packages </summary>
+<summary> ^ Install packages </summary>
 
 ```sh
 sudo dnf install -y ansible
@@ -153,7 +155,7 @@ ansible-playbook submariner/submarinercli-install.yml
 </details>
 
 <details>
-<summary> Required Environment Variables </summary>
+<summary> ^ Required Environment Variables </summary>
 
 #### Explaination and examples
 - `API_URL` - URL to access API of the cluster
@@ -192,20 +194,20 @@ export SUBMARINER-PATH="$PATH:~/.local/bin"
 </details>
 
 <details>
-<summary> Storage </summary>
+<summary> ^ Storage </summary>
 
 Persistent storage requirement is key to many application and to achieve disaster recovery for such applications, data replication becomes very important. In this lab we will leverage Red Hat OpenShift Data Foundations Storage.
 
 </details>
 
 <details>
-<summary> Configure LAB </summary>
+<summary> ^ Configure LAB </summary>
 
 Now that you have the `workshop/workshop-settings.sh` file with the various required variables, you can deploy the lab guide into your cluster.
 
-First, clone the repo
+First, clone the repo:
 
-> **NOTE** Remember to checkout the branch you want to test against
+> **_NOTE:_** Remember to checkout the branch you want to test against.
 
 ```shell
 git clone https://github.com/openshiftdemos/openshift-ops-workshops
@@ -261,7 +263,7 @@ oc import-image -n lab-ocp-hce dashboard
 </details>
 
 <details>
-<summary> Doing and follow the lab </summary>
+<summary> ^ Doing and follow the lab </summary>
 
 Your lab guide should deploy in a few moments. To find its url, execute:
 
@@ -291,7 +293,7 @@ where you installed OpenShift from.
 
 Logon to the Hub Cluster ACM, OCP-01 and OCP-02 console using your OpenShift credentials.
 
-Go to the OpenShift console and log in with your credentials username: admin and password: DevNationDayDec12
+Go to the OpenShift console and log in with your credentials username: admin and password: [PASSWORD] `DevNationDayDec12``
 
 ![ACM all clusters](./images/openshift-login.png)
 
@@ -332,7 +334,7 @@ git clone https://github.com/psehgaft/Hybrid_cloud_ecosystems
 
 ## 1. Management Complexity
 
-> **_NOTE:_** This part of the laboratory has already been provisioned, to focus on the deployment of the ecosystem's own services.
+> **_NOTE:_** This part of the laboratory has already been provisioned, to focus on the deployment of the ecosystem's own services. Items marked with a ^ have already been implemented.
 
 <details>
 <summary> Hub cluster </summary>
@@ -384,7 +386,7 @@ These steps are already executed for you during the lab setup except for the app
 </details>
 
 <details>
-<summary> Deploy Advanced Cluster Management for Kubernetes </summary>
+<summary> ^ Deploy Advanced Cluster Management for Kubernetes </summary>
 
 We will use the OpenShift command line for the first several steps; . then, I will show you how to use either the command line or the OpenShift 4 web console.
 
@@ -403,6 +405,8 @@ Select All Clusters and verify that you can see local and two managed clusters -
 
 ## 2. Consistency and Distributed Transactions
 
+> **_NOTE:_** This part of the laboratory has already been provisioned, to focus on the deployment of the ecosystem's own services. For this section only the validation part has to be carried out.
+
 <details>
 <summary> Implementation objetives </summary>
 
@@ -419,7 +423,7 @@ These steps are already executed for you during the lab setup except for the app
 </details>
 
 <details>
-<summary> Deploy Submariner </summary>
+<summary> ^ Deploy Submariner </summary>
 
 ```sh
 sudo dnf install -y ansible
@@ -473,11 +477,9 @@ A successful deployment will show Connection status and *Agent status* as *Healt
 
 </details>
 
-
-
 ## 3. Security and Data Protection
 
-> **_NOTE:_** This part of the laboratory has already been provisioned, to focus on the deployment of the ecosystem's own services.
+**_NOTE:_** This part of the laboratory has already been provisioned, to focus on the deployment of the ecosystem's own services. For this section only the validation part has to be carried out.
 
 <details>
 <summary> Governance </summary>
@@ -487,7 +489,7 @@ Governance enables you to define policies that either enforce security complianc
 </details>
 
 <details>
-<summary> Deploy Advanced Cluster Security for Kubernetes </summary>
+<summary> ^ Deploy Advanced Cluster Security for Kubernetes </summary>
 
 When RHACM is available, you can create RHACM policies to deploy RHACS to your cluster fleet. This approach ensures that all fleet clusters are protected by RHACS.
 
@@ -495,18 +497,6 @@ To implement RHACS, you must create two policies in RHACM, one for centralized s
 
 ```vars.yml
 ansible-playbook lab-deployment.yml --tags acs
-```
-</details>
-
-<details>
-<summary> Deploy Openshift Data Protection </summary>
-
-When RHACM is available, you can create RHACM policies to deploy RHACS to your cluster fleet. This approach ensures that all fleet clusters are protected by RHACS.
-
-To implement RHACS, you must create two policies in RHACM, one for centralized services and one for protected cluster services. The policy to install centralized services must be applied to the hub cluster. The policy for installing protected cluster services must be applied to the clusters that you want RHACS to protect. You can achieve this separation by using a clusterSelector parameter of the PlacementRule object.
-
-```vars.yml
-ansible-playbook lab-deployment.yml --tags oadp
 ```
 </details>
 
@@ -539,11 +529,148 @@ These steps are already executed for you during the lab setup except for the app
 
 </details>
 
-### Backup
+<details>
+<summary> ^ Deploy Openshift Data Protection </summary>
+
+When RHACM is available, you can create RHACM policies to deploy RHACS to your cluster fleet. This approach ensures that all fleet clusters are protected by RHACS.
+
+To implement RHACS, you must create two policies in RHACM, one for centralized services and one for protected cluster services. The policy to install centralized services must be applied to the hub cluster. The policy for installing protected cluster services must be applied to the clusters that you want RHACS to protect. You can achieve this separation by using a clusterSelector parameter of the PlacementRule object.
+
+```vars.yml
+ansible-playbook lab-deployment.yml --tags oadp
+```
+</details>
+
+<details>
+<summary> ^ Backup </summary>
+
+This is necessary so that metadata can be stored on the alternate cluster in a Multi-Cloud Gateway (MCG) object bucket using a secure transport protocol and in addition the Hub cluster needs to verify access to the object buckets.
+
+> **_NOTE:_** If all of your OpenShift clusters are deployed using signed and valid set of certificates for your environment then this specific step can be skipped during implementation.
+
+</details>
+
+<details>
+<summary> Validate OpenShift Data Foundation </summary>
+
+In [OCP-01] and [OCP-02] we validate:
+
+Validate the successful deployment of ODF on each managed OCP cluster with the following command:
+
+```sh
+oc get storagecluster -n openshift-storage ocs-storagecluster -o jsonpath='{.status.phase}{"\n"}'
+```
+
+Validate Multi-Cluster Gateway (MCG) status:
+
+```sh
+
+oc get noobaa -n openshift-storage noobaa -o jsonpath='{.status.phase}{"\n"}'
+```
+</details>
+
+<details>
+<summary> Validate ODF Multicluster Orchestrator Operator on Hub cluster </summary>
+
+Check to see the following operators Pod are in a Running state. You may also see other operator pods which are not related to Regional DR configuration.
+
+For Hub:
+
+```sh
+oc get pods -n openshift-operators
+```
+</details>
+
+<details>
+<summary> Validate Data Policy on Hub cluster </summary>
+
+On the Hub cluster navigate and select *All Clusters* > *Data policies* under Data services menu. 
+If this your first DRPolicy created you will see *Create* DRpolicy at the bottom of the page, else you will the the already created DRPolicy.
+
+> **_NOTE:_** Make sure you can access all clusters from the *Multicluster Web console*. The clusters will be directly below All Clusters.
+
+Click on Data policies and review the already created drpolicy.
+
+
+```sh
+oc get pods -n openshift-operators
+```
+
+![ACM all clusters](./images/MCO-drpolicy-selections.png)
+
+Note that the Replication policy will automatically be selected as async based on the OpenShift clusters selected and a Sync schedule will be available. The replication interval for this dr policy is 5 minutes. You can check by clicking 3 dots on the right side of drsync5m data policy and select Edit DR Policy. Please do not update anything here, once you review the content of the yaml file, just cancel the selection so that there is no update to the DR Policy.
+
+- Creating a new DR Policy also creates the two DRCluster resources and also the DRPolicy on the Hub cluster. In addition, when the initial DRPolicy is created the following will happen:
+
+- Create a bootstrap token and exchanges this token between the managed clusters.
+
+- Enable mirroring for the default CephBlockPool on each managed clusters.
+
+- Create a *VolumeReplicationClass* on the *OCP-01 managed cluster* and the *OCP-02 Secondary managed cluster* for the replication interval in the DRPolicy.
+
+- An object bucket created (using MCG) on each managed cluster for storing *PVC* and *PV* metadata.
+
+- A *Secret* created in the openshift-operators project on the *Hub cluster* for each new object bucket that has the base64 encoded access keys.
+
+- The ramen-hub-operator-config *ConfigMap* on the *Hub cluster* is modified with s3StoreProfiles entries.
+
+- The OpenShift DR Cluster operator will be deployed on each managed cluster in the openshift-dr-system project.
+
+- The object buckets *Secrets* on the *Hub cluster* in the project openshift-operators will be copied to the managed clusters in the openshift-dr-system project.
+
+- The s3StoreProfiles entries will be copied to the managed clusters and used to modify the ramen-dr-cluster-operator-config *ConfigMap* in the openshift-dr-system project.
+
+To validate that the *DRPolicy* is created successfully run this command on the *Hub cluster* for the each *Data Policy* resource created.
+
+> **_NOTE:_** Replace <drpolicy_name> with your unique name.
+
+For Hub (drpolicy name is <policy_name>):
+
+```sh
+oc get drpolicy <policy_name> -o jsonpath='{.status.conditions[].reason}{"\n"}'
+```
+
+To validate object bucket access from the *Hub cluster* to both the *OCP-1 Primary managed cluster* and the *OCP-02 Secondary managed cluster* first get the names of the DRClusters on the *Hub cluster*.
+
+Now test S3 access to each bucket created on each managed cluster using this DRCluster validation command.
+
+> **_NOTE:_** Replace <drcluster_name> with your unique name.
+
+```sh
+oc get drcluster <drcluster_name_OCP-01> -o jsonpath='{.status.conditions[2].reason}{"\n"}'
+
+oc get drcluster <drcluster_name_OCP-02> -o jsonpath='{.status.conditions[2].reason}{"\n"}'
+```
+
+> **_NOTE:_** Make sure to run command for both *DRClusters* on the *Hub cluster*.
+
+To validate that the OpenShift DR Cluster operator installation was successful on the *OCP-01 Primary managed cluster* and the *OCP-02 Secondary managed cluster* check for *CSV* *odr-cluster-operator* and pod *ramen-dr-cluster-operator* by running the following command:
+
+On OCP-01 and OCP-02
+
+```sh
+oc get csv,pod -n openshift-dr-system
+```
+
+You can also go to *OperatorHub* on each of the managed clusters and look to see the OpenShift DR Cluster Operator is installed.
+
+![ACM all clusters](./images/ODR-412-Cluster-operator.png)
+
+Validate the status of the ODF mirroring daemon health on the Primary managed cluster and the Secondary managed cluster.
+
+On OCP-01 and OCP-02
+
+```sh
+oc get cephblockpool ocs-storagecluster-cephblockpool -n openshift-storage -o jsonpath='{.status.mirroringStatus.summary}{"\n"}'
+```
+
+> **_NOTE:_** It could take up to 10 minutes for the daemon_health and health to go from Warning to OK. If the status does not become OK eventually then use the ACM console to verify that the Submariner connection between managed clusters is still in a healthy state.
+
+</details>
 
 ## 4. Monitoring and Follow-up
 
-> **_NOTE:_** This part of the laboratory has already been provisioned, to focus on the deployment of the ecosystem's own services.
+**_NOTE:_** This part of the laboratory has already been provisioned, to focus on the deployment of the ecosystem's own services. For this section only the validation part has to be carried out.
 
 <details>
 <summary> Observability </summary>
