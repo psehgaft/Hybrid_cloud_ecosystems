@@ -52,6 +52,12 @@ It is important to address these problems with a strategic approach and consider
 
 ![Open Hybrid Ecosystems](./images/hybrid-microservices-ecosystems.png)
 
+The lab consists of three Red Hat OpenShift Clusters.
+
+1. Hub Cluster
+2. Primary Cluster (OCP-01)
+3. Secondary Cluster (OCP-01)
+
 ### AWS
 This lab is designed to run on an OpenShift 4 cluster that has been completely installed by the new installer. You will need access to AWS with sufficient permissions and limits to deploy the 3 masters, 4-6 regular nodes,
 and NVME-equipped nodes for storage.
@@ -64,6 +70,54 @@ for _Installing on AWS_.
 At this time an OpenShift 4 cluster can be obtained by visiting
 https://try.openshift.com -- a free "subscription" to / membership in the
 developer program is required.
+
+### Red Hat Advanced Cluster Management for Kubernetes
+
+Red Hat Advanced Cluster Management for Kubernetes provides end-to-end management visibility and control to manage your Kubernetes environment. Take control of your application modernization program with management capabilities for cluster creation, application lifecycle, and provide security and compliance for all of them across hybrid cloud environments. Clusters and applications are all visible and managed from a single console, with built-in security policies. Run your operations from anywhere that Red Hat OpenShift runs, and manage any Kubernetes cluster in your fleet.
+
+With Red Hat Advanced Cluster Management for Kubernetes:
+
+1. Work across a range of environments, including multiple data centers, private clouds and public clouds that run Kubernetes clusters.
+2. Easily create Kubernetes clusters and offer cluster lifecycle management in a single console.
+3. Enforce policies at the target clusters using Kubernetes-supported custom resource definitions.
+4. Deploy and maintain day-two operations of business applications distributed across your cluster landscape.
+
+Red Hat Advanced Cluster Management (RHACM) provides the ability to manage multiple clusters and application lifecycles. Hence, it serves as a control plane in a multi-cluster environment.
+
+1. RHACM is split into two parts:
+2. RHACM Hub: components that run on the multi-cluster control plane.
+Managed clusters: components that run on the clusters that are managed.
+
+### OpenShift Data Foundation
+
+OpenShift Data Foundation provides the ability to provision and manage storage for stateful applications in an OpenShift Container Platform cluster.
+
+OpenShift Data Foundation is backed by Ceph as the storage provider, whose lifecycle is managed by Rook in the OpenShift Data Foundation component stack. Ceph-CSI provides the provisioning and management of Persistent Volumes for stateful applications.
+
+OpenShift Data Foundation stack is now enhanced with the following abilities for disaster recovery:
+
+1. Enable RBD block pools for mirroring across OpenShift Data Foundation instances (clusters)
+2. Ability to mirror specific images within an RBD block pool
+3. Provides csi-addons to manage per Persistent Volume Claim (PVC) mirroring
+
+### OpenShift DR
+Red Hat OpenShift Data Foundation Regional Disaster Recovery (Regional-DR) solution along with the steps and commands necessary to be able to failover an application from one OpenShift Container Platform cluster to another and then failback the same application to the original primary cluster.
+
+Regional-DR is composed of Red Hat Advanced Cluster Management for Kubernetes and OpenShift Data Foundation components to provide application and data mobility across Red Hat OpenShift Container Platform clusters.
+
+> :note: Regional-DR is supported with OpenShift Data Foundation 4.14 and Red Hat Advanced Cluster Management for Kubernetes 2.9 combinations only.
+
+OpenShift DR is a set of orchestrators to configure and manage stateful applications across a set of peer OpenShift clusters which are managed using RHACM and provides cloud-native interfaces to orchestrate the life-cycle of an application’s state on Persistent Volumes. These include:
+
+- Protecting an application and its state relationship across OpenShift clusters
+- Failing over an application and its state to a peer cluster
+- Relocate an application and its state to the previously deployed cluster
+
+OpenShift DR is split into three components:
+
+1. ODF Multicluster Orchestrator: Installed on the multi-cluster control plane (RHACM Hub), it orchestrates configuration and peering of OpenShift Data Foundation clusters for Metro and Regional DR relationships
+2. OpenShift DR Hub Operator: Automatically installed as part of ODF Multicluster Orchestrator installation on the hub cluster to orchestrate failover or relocation of DR enabled applications.
+3. OpenShift DR Cluster Operator: Automatically installed on each managed cluster that is part of a Metro and Regional DR relationship to manage the lifecycle of all PVCs of an application.
 
 # Deploying the Lab Guide
 
@@ -138,13 +192,10 @@ export SUBMARINER-PATH="$PATH:~/.local/bin"
 </details>
 
 <details>
-<summary> vars.yml</summary>
+<summary> Storage </summary>
 
-```vars.yml
-username: {{ user }}
-subctl-cli-url: "https://get.submariner.io"
-submariner-path: "$PATH:~/.local/bin"
-```
+Persistent storage requirement is key to many application and to achieve disaster recovery for such applications, data replication becomes very important. In this lab we will leverage Red Hat OpenShift Data Foundations Storage.
+
 </details>
 
 <details>
@@ -210,7 +261,7 @@ oc import-image -n lab-ocp-hce dashboard
 </details>
 
 <details>
-<summary> Doing the Lab </summary>
+<summary> Doing and follow the lab </summary>
 
 Your lab guide should deploy in a few moments. To find its url, execute:
 
@@ -238,6 +289,12 @@ Also note that the first lab where you SSH into the bastion host is not
 relevant to you -- you are likely already doing the exercises on the host
 where you installed OpenShift from.
 
+Logon to the Hub Cluster ACM, OCP-01 and OCP-02 console using your OpenShift credentials.
+
+Go to the OpenShift console and log in with your credentials username: admin and password: DevNationDayDec12
+
+![ACM all clusters](./images/openshift-login.png)
+
 </details>
 
 <details>
@@ -258,7 +315,6 @@ To delete deployment run
 ```
 oc delete all,serviceaccount,rolebinding,configmap -l app=admin -n lab-ocp-hce
 ```
-
 </details>
 
 <details>
@@ -271,7 +327,6 @@ First, clone the repo
 ```shell
 git clone https://github.com/psehgaft/Hybrid_cloud_ecosystems
 ```
-
 </details>
 
 
@@ -280,7 +335,34 @@ git clone https://github.com/psehgaft/Hybrid_cloud_ecosystems
 > **_NOTE:_** This part of the laboratory has already been provisioned, to focus on the deployment of the ecosystem's own services.
 
 <details>
-<summary> Deploy Advanced Cluster Management for Kubernetes </summary>
+<summary> Hub cluster </summary>
+
+The hub cluster is the common term that is used to define the central controller that runs in a Red Hat Advanced Cluster Management for Kubernetes cluster. From the hub cluster, you can access the console and product components, as well as the Red Hat Advanced Cluster Management APIs. You can also use the console to search resources across clusters and view your topology.
+
+The Red Hat Advanced Cluster Management hub cluster uses the MultiClusterHub operator to manage, upgrade, and install hub cluster components and runs in the open-cluster-management namespace. The hub cluster aggregates information from multiple clusters by using an asynchronous work request model and search collectors. The hub cluster maintains the state of clusters and applications that run on it.
+
+The local cluster is the term used to define a hub cluster that is also a managed cluster, discussed in the following sections.
+
+</details>
+
+<details>
+<summary> Managed cluster </summary>
+
+The managed cluster is the term that is used to define additional clusters that are managed by the hub cluster. The connection between the two is completed by using the klusterlet, which is the agent that is installed on the managed cluster. The managed cluster receives and applies requests from the hub cluster and enables it to service cluster lifecycle, application lifecycle, governance, and observability on the managed cluster.
+
+</details>
+
+<details>
+<summary> Cluster lifecycle </summary>
+
+Red Hat Advanced Cluster Management cluster lifecycle defines the process of creating, importing, managing, and destroying Kubernetes clusters across various infrastructure cloud providers, private clouds, and on-premises data centers.
+
+The cluster lifecycle function is provided by the multicluster engine for Kubernetes operator, which is installed automatically with Red Hat Advanced Cluster Management. See Cluster lifecycle introduction for general information about the cluster lifecycle function.
+
+</details>
+
+<details>
+<summary> Implementation objetives </summary>
 
 You can use either the OpenShift 4 web console's built-in OperatorHub or the OpenShift CLI to install ACM. The installation breaks down to six steps:
 
@@ -291,14 +373,50 @@ You can use either the OpenShift 4 web console's built-in OperatorHub or the Ope
 5. Create the MultiClusterHub resource.
 6. Verify the ACM installation.
 
+These steps are already executed for you during the lab setup except for the application onboarding which is the next lab.
+
+1. *Install the ACM operator on the hub cluster:* After creating the OCP hub cluster, install from OperatorHub the ACM operator. After the operator and associated pods are running, create the MultiClusterHub resource.
+
+2. *Create or import managed OCP clusters into ACM hub:* Import or create the two managed clusters with adequate resources for ODF (compute nodes, memory, cpu) using the RHACM console.
+
+3. *Ensure clusters have unique private network address ranges:* Ensure the primary and secondary OCP clusters have unique private network address ranges.
+
+</details>
+
+<details>
+<summary> Deploy Advanced Cluster Management for Kubernetes </summary>
+
 We will use the OpenShift command line for the first several steps; . then, I will show you how to use either the command line or the OpenShift 4 web console.
 
 ```vars.yml
 ansible-playbook lab-deployment.yml --tags acm
 ```
 </details>
+<details>
+<summary> Verify </summary>
+
+Select All Clusters and verify that you can see local and two managed clusters - primnary and secondary
+
+![ACM all clusters](./images/ACM-all-cluster-hub.png)
+</details>
+
 
 ## 2. Consistency and Distributed Transactions
+
+<details>
+<summary> Implementation objetives </summary>
+
+These steps are already executed for you during the lab setup except for the application onboarding which is the next lab.
+
+1. *Connect the private networks using Submariner add-ons:* Connect the managed OCP private networks (cluster and service) using the RHACM Submariner add-ons.
+
+2. *Install ODF 4.14 on managed clusters:* Install ODF 4.12 on primary and secondary OCP managed clusters and validate deployment.
+
+3. *Install ODF Multicluster Orchestrator on the ACM hub cluster:* Install from OperatorHub on the ACM hub cluster the ODF Multicluster Orchestrator. The OpenShift DR Hub operator will also be installed.
+
+4. *Configure SSL access between S3 endpoints:* If managed OpenShift clusters are not using valid certificates this step must be done by creating a new user-ca-bundle ConfigMap that contains the certs.
+
+</details>
 
 <details>
 <summary> Deploy Submariner </summary>
@@ -312,12 +430,61 @@ ansible-playbook submariner/submarinercli-install.yml
 ```
 </details>
 
+<details>
+<summary> Validate non-overlapping networks </summary>
 
-### Configure Submariner
+In [OCP-01] and [OCP-02] we validate:
+
+```sh
+oc get networks.config.openshift.io cluster -o json | jq .spec
+```
+Example output
+
+```shell
+{
+  "clusterNetwork": [
+    {
+      "cidr": "10.128.0.0/14",
+      "hostPrefix": 23
+    }
+  ],
+  "externalIP": {
+    "policy": {}
+  },
+  "networkType": "OpenShiftSDN",
+  "serviceNetwork": [
+    "172.30.0.0/16"
+  ]
+}
+```
+
+Now that we know the cluster and service networks have non-overlapping ranges, it is time to verify the Submariner add-ons for each managed cluster.
+
+</details>
+
+<details>
+<summary> Verify that the Managed clusters using Submariner add-ons </summary>
+
+Navigate on All Cland Click *ALL CLUSTERS* > *InfraSturcture* > *Clusters*.
+Select *Cluster Sets* tab and in *cluster sets* select *clusterset1* and *Submariner add-ons tab*. 
+A successful deployment will show Connection status and *Agent status* as *Healthy* for both *OCP-01* and *OCP-02*.
+
+![ACM all clusters](./images/ACM-Submariner-addon-installed.png)
+
+</details>
+
+
 
 ## 3. Security and Data Protection
 
 > **_NOTE:_** This part of the laboratory has already been provisioned, to focus on the deployment of the ecosystem's own services.
+
+<details>
+<summary> Governance </summary>
+
+Governance enables you to define policies that either enforce security compliance, or inform you of changes that violate the configured compliance requirements for your environment. Using dynamic policy templates, you can manage the policies and compliance requirements across all of your management clusters from a central interface.
+
+</details>
 
 <details>
 <summary> Deploy Advanced Cluster Security for Kubernetes </summary>
@@ -343,13 +510,47 @@ ansible-playbook lab-deployment.yml --tags oadp
 ```
 </details>
 
-### DRP
+<details>
+<summary> Disaster recovery </summary>
+
+Organizations running critical applications on Red Hat OpenShift Container Platform need a business continuity plan for site and regional disasters that goes beyond cluster failover or backup and recovery. Your implementation should provide data resiliency and take into account continuous application deployment practices as part of overall enterprise GitOps strategies.
+
+Disaster recovery (DR) helps an organization recover and resume business-critical functions or normal operations when there are disruptions or disasters.
+
+1. We will use an application part of the OpenE-Comerce ecosystem that sells products online.
+You will learn how to deploy and configure this application for business continuity.
+2. We will test data persistence in failover/relocation (failback) scenarios by updating the data in the database. Verify that data is consistent and available after transition from one site/cluster to another.
+3. We incorporated a sample application to be part of the disaster recovery strategy and test failover/relocation (failback).
+
+Regional-DR is composed of Red Hat Advanced Cluster Management for Kubernetes and OpenShift Data Foundation components to provide application and data mobility across Red Hat OpenShift Container Platform clusters.
+
+</details>
+
+<details>
+<summary> Implementation objetives </summary>
+
+These steps are already executed for you during the lab setup except for the application onboarding which is the next lab.
+
+1. *Create one or more DRPolicy:* Use the All Clusters Data Services UI to create DRPolicy by selecting the two managed clusters the policy will apply to.
+
+2. *Validate OpenShift DR Cluster operators are installed:* Once the first DRPolicy is created this will trigger the DR Cluster operators to be created on the two managed clusters selected in the UI.
+
+3. *failover/relocate:* Setup an application using RHACM console and test failover/relocate.
+
+</details>
 
 ### Backup
 
 ## 4. Monitoring and Follow-up
 
 > **_NOTE:_** This part of the laboratory has already been provisioned, to focus on the deployment of the ecosystem's own services.
+
+<details>
+<summary> Observability </summary>
+
+The Observability component collects and reports the status and health of the OpenShift Container Platform version 4.x or later, managed clusters to the hub cluster, which are visible from the Grafana dashboard. You can create custom alerts to inform you of problems with your managed clusters. Because it requires configured persistent storage, Observability must be enabled after the Red Hat Advanced Cluster Management installation.
+
+</details>
 
 <details>
 <summary> Deploy Openshift Monitoring </summary>
@@ -373,8 +574,19 @@ ansible-playbook lab-deployment.yml --tags thanos
 ```
 </details>
 
-
 ## 5. Testing and Continuous Deployment
+
+<details>
+<summary> Implementation objetives </summary>
+
+These steps are already executed for you during the lab setup except for the application onboarding which is the next lab.
+
+1. Create an application using RHACM console for highly available application across regions.
+
+2. Test failover and reolcate operations using the sampole application between managed clusters.
+
+</details>
+
 ## 6. Cultural and Organizational Change
 
 The importance of industry verticals can vary depending on the context, region, and the current economic and technological landscape. However, here we will focus on a list of some of the diverse and historically important industrial sectors that have played an important role in economies around the world:
@@ -426,7 +638,6 @@ The importance of industry verticals can vary depending on the context, region, 
 
 The importance of these industry verticals may change over time due to technological advances, economic changes, and global events. Additionally, new industries and sectors may emerge as society evolves and new needs arise. Therefore, the relative importance of these industry verticals may vary by region and time period.
 </details>
-
 
 ## 7. Network Overload and Latency
 
