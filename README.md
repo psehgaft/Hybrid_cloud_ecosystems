@@ -126,13 +126,14 @@ information about your cluster. Second, you will build a container based on your
 Third, you will deploy the lab guide using the information you found so that proper
 URLs and references are automatically displayed in the guide.
 
-> **_NOTE:_** This part of the laboratory has already been provisioned, to focus on the deployment of the ecosystem's own services. Items marked with a ^ have already been implemented.
-
 ## Requirements / Prerequisites
+
+> **_NOTE:_** This part of the laboratory has already been provisioned, to focus on the deployment of the ecosystem's own services. Items marked with a ^ have already been implemented.
 
 Most of the information can be found in the output of the installer.
 
-### Requirements
+<details>
+<summary> ^ Requirements </summary>
 
 * Python (3.5.3)
 * awscli (1.11.109-2.fc25) Fedora
@@ -141,6 +142,8 @@ Most of the information can be found in the output of the installer.
 * setuptools (36.2.4)
 * wheel (0.30.0a0)
 * ansible (7.7.0-1)
+
+</details>
 
 <details>
 <summary> ^ Install packages </summary>
@@ -295,7 +298,7 @@ Logon to the Hub Cluster ACM, OCP-01 and OCP-02 console using your OpenShift cre
 
 Go to the OpenShift console and log in with your credentials username: admin and password: [PASSWORD] `DevNationDayDec12``
 
-![ACM all clusters](./images/openshift-login.png)
+![OCP Login](./images/openshift-login.png)
 
 </details>
 
@@ -394,18 +397,154 @@ We will use the OpenShift command line for the first several steps; . then, I wi
 ansible-playbook lab-deployment.yml --tags acm
 ```
 </details>
+
+<details>
+<summary> ^ Cluster Lifecycle </summary>
+
+At a high level Cluster Lifecycle management is about creating, upgrading, and destroying and importing clusters in a multi cloud environment.
+
+AWS credentials:
+- Access Key ID
+- Secret Access Key
+- Base DNS Domain.  
+
+In order to create a new OpenShift cluster in the AWS cloud we will need these keys to create a Provider Connection. On the left bar, select Credentials and then select Add Credential.
+
+![ACM add credential](./images/ACM-add-credential.png) #TODO#
+
+You will need to provide connection details:
+
+**Credential Type:** Choose *Amazon Web Services* and then, *Amazon Web Services* again
+**Credential Name:**  aws
+**Namespace:** open-cluster-management
+**Base DNS Domain:**  This is in the email from the RHDP system
+
+Click NEXT
+
+**Access Key ID:**  This is in the email from the RHDP system
+**Secret Access Key ID:** This is in the email from the RHDP system
+
+Click NEXT - We don’t need to configure a Proxy
+
+**Red Hat OpenShift pull secret:** Get from your [Red Hat login](https://cloud.redhat.com/openshift/install/pull-secret)
+*SSH private and public keys(optional):*  ~/.ssh/id_rsa
+
+Click NEXT, verify the information and click ADD
+
+</details>
+
+<details>
+<summary> ^ Create a new OpenShift clusters in AWS </summary>
+
+**OCP-01**
+
+From the *Clusters* page, select *Create Cluster*
+Select *Amazon Web services* and then *Standalone*.
+Select the *Infrastructure provider credential*: aws (may be already selected)
+**Name:** primary (OCP-01) 
+Leave the *Cluster set empty for now*
+Select a *Release Image*, chose a 4.14 version
+Add a label of *environment=prod*. 
+
+Click NEXT
+
+Change the region to *(Select us-west-1 or us-west-2)*
+
+**OCP-02**
+
+From the *Clusters* page, select *Create Cluster*
+Select *Amazon Web services* and then *Standalone*.
+Select the *Infrastructure provider credential*: aws (may be already selected)
+**Name:** primary (OCP-02) 
+Leave the *Cluster set empty for now*
+Select a *Release Image*, chose a 4.14 version
+Add a label of *environment=prod*. 
+
+Click NEXT
+
+Change the region to *(Select us-west-1 or us-west-2)*
+
+![ACM add cluster](./images/ACM-add-credential.png) #TODO#
+
+
+</details>
+
+<details>
+<summary> ^ Importing clusters </summary>
+
+Click on Add *Cluster* --> *Import Clusters*.
+
+Under labels make sure you add the environment=dev label as a label example.
+
+Please note that the name you use for the cluster is not relevant, but it makes sense to use the actual cluster name in a production environment. 
+
+Once finished click *NEXT*, *NEXT* and *GENERATE CODE*.
+
+
+![ACM import cluster](./images/ACM-add-credential.png) #TODO#
+
+Once complete, select *COPY COMMAND*
+
+![ACM import cluster copy command](./images/ACM-add-credential.png) #TODO#
+
+From a terminal, login to the target Kubernetes cluster you want to import.  Then paste and run the command you just copied.
+
+Navigate back to ACM and wait for the cluster to become available (should be no more than 5 to 10 minutes).
+
+</details>
+
 <details>
 <summary> Verify </summary>
 
 Select All Clusters and verify that you can see local and two managed clusters - primnary and secondary
 
 ![ACM all clusters](./images/ACM-all-cluster-hub.png)
+
+</details>
+
+<details>
+<summary> Application Lifecycle </summary>
+
+
+Application Lifecycle functionality in RHACM provides the processes that are used to manage application resources on your managed clusters. This allows you to define a single or multi-cluster application using Kubernetes specifications, but with additional automation of the deployment and lifecycle management of resources to individual clusters. An application designed to run on a single cluster is straightforward and something you ought to be familiar with from working with OpenShift fundamentals. A multi-cluster application allows you to orchestrate the deployment of these same resources to multiple clusters, based on a set of rules you define for which clusters run the application components.
+
+The table below describes the different components that the Application Lifecycle model in RHACM is composed of:
+
+Resource | Purpose 
+| :---: | :---: |
+Channel  | Defines a place where deployable resources are stored, such as an object store, Kubernetes namespace, Helm repository, or GitHub repository. 
+Subscription | Definitions that identify deployable resources available in a Channel resource that are to be deployed to a target cluster.
+Placement - (Old PlacementRule API to be deprecated soon) | Defines the target clusters where subscriptions deploy and maintain the application. It is composed of Kubernetes resources identified by the Subscription resource and pulled from the location defined in the Channel resource.
+Application | A way to group the components here into a more easily viewable single resource. An Application resource typically references a Subscription resource.
+
+These are all Kubernetes custom resources, defined by a *Custom Resource Definition (CRD)*, that are created for you when RHACM is installed. 
+By creating these as Kubernetes native objects, you can interact with them the same way you would with a Pod. 
+For instance, running oc get application retrieves a list of deployed RHACM applications just as:
+
+```sh
+oc get pods
+```
+
+Retrieves a list of deployed Pods.
+
+This may seem like a lot of extra resources to manage in addition to the deployables that actually make up your application. 
+However, they make it possible to automate the composition, placement, and overall control of your applications when you are deploying to many clusters. 
+With a single cluster, it is easy to log in and run:
+
+```sh
+oc create -f <file-name>.yml
+```
+
+If you need to do that on a dozen clusters, you want to make sure you do not make a mistake or miss a cluster, and you need a way to schedule and orchestrate updates to your applications. 
+Leveraging the Application Lifecycle Builder in RHACM allows you to easily manage multi-cluster applications.
+
+
 </details>
 
 
 ## 2. Consistency and Distributed Transactions
 
-> **_NOTE:_** This part of the laboratory has already been provisioned, to focus on the deployment of the ecosystem's own services. For this section only the validation part has to be carried out.
+> **_NOTE:_** This part of the laboratory has already been provisioned, to focus on the deployment of the ecosystem's own services. Items marked with a ^ have already been implemented.
 
 <details>
 <summary> Implementation objetives </summary>
@@ -473,13 +612,13 @@ Navigate on All Cland Click *ALL CLUSTERS* > *InfraSturcture* > *Clusters*.
 Select *Cluster Sets* tab and in *cluster sets* select *clusterset1* and *Submariner add-ons tab*. 
 A successful deployment will show Connection status and *Agent status* as *Healthy* for both *OCP-01* and *OCP-02*.
 
-![ACM all clusters](./images/ACM-Submariner-addon-installed.png)
+![ACM Submariner add-on](./images/ACM-Submariner-addon-installed.png)
 
 </details>
 
 ## 3. Security and Data Protection
 
-**_NOTE:_** This part of the laboratory has already been provisioned, to focus on the deployment of the ecosystem's own services. For this section only the validation part has to be carried out.
+> **_NOTE:_** This part of the laboratory has already been provisioned, to focus on the deployment of the ecosystem's own services. Items marked with a ^ have already been implemented.
 
 <details>
 <summary> Governance </summary>
@@ -596,7 +735,7 @@ Click on Data policies and review the already created drpolicy.
 oc get pods -n openshift-operators
 ```
 
-![ACM all clusters](./images/MCO-drpolicy-selections.png)
+![ACM DR policy selections](./images/MCO-drpolicy-selections.png)
 
 Note that the Replication policy will automatically be selected as async based on the OpenShift clusters selected and a Sync schedule will be available. The replication interval for this dr policy is 5 minutes. You can check by clicking 3 dots on the right side of drsync5m data policy and select Edit DR Policy. Please do not update anything here, once you review the content of the yaml file, just cancel the selection so that there is no update to the DR Policy.
 
@@ -654,7 +793,7 @@ oc get csv,pod -n openshift-dr-system
 
 You can also go to *OperatorHub* on each of the managed clusters and look to see the OpenShift DR Cluster Operator is installed.
 
-![ACM all clusters](./images/ODR-412-Cluster-operator.png)
+![ACM ODF cluster operator](./images/ODR-412-Cluster-operator.png)
 
 Validate the status of the ODF mirroring daemon health on the Primary managed cluster and the Secondary managed cluster.
 
@@ -670,7 +809,7 @@ oc get cephblockpool ocs-storagecluster-cephblockpool -n openshift-storage -o js
 
 ## 4. Monitoring and Follow-up
 
-**_NOTE:_** This part of the laboratory has already been provisioned, to focus on the deployment of the ecosystem's own services. For this section only the validation part has to be carried out.
+> **_NOTE:_** This part of the laboratory has already been provisioned, to focus on the deployment of the ecosystem's own services. Items marked with a ^ have already been implemented.
 
 <details>
 <summary> Observability </summary>
@@ -680,28 +819,75 @@ The Observability component collects and reports the status and health of the Op
 </details>
 
 <details>
-<summary> Deploy Openshift Monitoring </summary>
+<summary> ^ Deploy Openshift Monitoring </summary>
 
 ```vars.yml
 ansible-playbook lab-deployment.yml --tags acs
 ```
 </details>
 <details>
-<summary> Deploy Openshift Logging </summary>
+<summary> ^ Deploy Openshift Logging </summary>
 
 ```vars.yml
 ansible-playbook lab-deployment.yml --tags acs
 ```
 </details>
 <details>
-<summary> Deploy Thanos </summary>
+<summary> ^ Deploy Thanos </summary>
 
 ```vars.yml
 ansible-playbook lab-deployment.yml --tags thanos
 ```
 </details>
+<details>
+<summary> ^ End to End Visibility </summary>
+
+View system alerts, critical application metrics, and overall system health. Search, identify, and resolve issues that are impacting distributed workloads using an operational dashboard designed for Site Reliability Engineers (SREs).  This is done via the integration of Grafana.  Let's walk through the steps to integrate Grafana with ACM.
+
+- You will need your AWS Keys. 
+- You will also need to create an AWS S3 bucket.
+- SSH information to your bastion host.
+
+**Create the S3 bucket**
+- Login to the bastion host.
+- Run the following command to login to AWS:  *aws configure*  and enter your AWS keys when prompted.  
+-- Default region: *us-east-2*
+- Then run the following command to create the S3 bucket:  
+```sh
+aws s3 mb s3://grafana-$GUID
+```
+- Please take note of the bucket name.
+
+**Integrate Grafana into ACM**
+
+- Login to the bastion host host.
+- Create a namespace by running the following command:  
+```sh
+oc create namespace open-cluster-management-observability
+```
+Copy the pull secret into this new namespace by running the following TWO commands:  
+```sh
+PODMAN_CONFIG_JSON=`oc extract secret/pull-secret -n openshift-config --to=-` 
+
+oc create secret generic multiclusterhub-operator-pull-secret -n open-cluster-management-observability --from-literal=.dockerconfigjson="$PODMAN_CONFIG_JSON" --type=kubernetes.io/dockerconfigjson
+```
+
+- In your current folder create a file called *thanos-object-storage.yaml*  and add the following text in the file. `Please be sure to update your S3 bucket name and AWS Keys`.
+
+- Create a secret for your object storage by running the following command: 
+
+```sh
+oc create -f thanos-object-storage.yaml -n pen-cluster-management-observability
+```
+
+- Create the *MultiClusterObservability* custom resource for your managed clusters.  To do this create a  YAML file named multiclusterobservability_cr.yaml
+
+
+</details>
 
 ## 5. Testing and Continuous Deployment
+
+> **_NOTE:_** This part of the laboratory has already been provisioned, to focus on the deployment of the ecosystem's own services. Items marked with a ^ have already been implemented.
 
 <details>
 <summary> Implementation objetives </summary>
@@ -715,6 +901,8 @@ These steps are already executed for you during the lab setup except for the app
 </details>
 
 ## 6. Cultural and Organizational Change
+
+> **_NOTE:_** This part of the laboratory has already been provisioned, to focus on the deployment of the ecosystem's own services. Items marked with a ^ have already been implemented.
 
 The importance of industry verticals can vary depending on the context, region, and the current economic and technological landscape. However, here we will focus on a list of some of the diverse and historically important industrial sectors that have played an important role in economies around the world:
 
@@ -766,11 +954,72 @@ The importance of industry verticals can vary depending on the context, region, 
 The importance of these industry verticals may change over time due to technological advances, economic changes, and global events. Additionally, new industries and sectors may emerge as society evolves and new needs arise. Therefore, the relative importance of these industry verticals may vary by region and time period.
 </details>
 
+<details>
+<summary> Creating an open industry ecosystem </summary>
+
+TPrerequisites:  
+- On the local cluster add a label:  *environment=dev*.
+
+IMAGE TODO
+
+- On the new cluster you provisioned via ACM double check you added the label:  *environment=prod*.
+
+IMAGE TODO
+
+1. In RHACM, navigate to Applications and click Create application and select Subscription. 
+Enter the following information:
+
+
+**Name**: open-education 
+**Namespace**: open-education 
+ Under Repository location for resources, select the GIT repository
+**URL**:  https://github.com/psehgaft/open-education.git
+**Branch**:  main
+**Path**:  open-education
+
+Next to Create application, make sure the YAML dial is ON
+
+IMAGE TODO
+
+Under the S*elect clusters for application deployment*, select *Deploy application resources on clusters with all specified labels*
+**Cluster sets**: global
+**Label**: environment
+**Value**: dev
+
+IMAGE TODO
+
+Click Create and after a few minutes you will see the application and all its components available in RHACM.
+
+IMAGE TODO
+
+If everything was done correctly you should be able to see the application deployed to local-cluster. Go to *Applications*, and make sure to filter by subscription as the image below:
+
+IMAGE TODO
+
+This will show only the apps deployed from ACM, instead of all the existing apps in the managed clusters. 
+
+Click on the *open-education application* and have a look at the topology view
+
+IMAGE TODO
+
+Select the Route and click on the URL provided, you should see the Book Import application
+
+See the Book Import user interface.
+
+IMAGE TODO
+
+
+</details>
+
 ## 7. Network Overload and Latency
 
-### Hybrid Cloud Balancing
+> **_NOTE:_** This part of the laboratory has already been provisioned, to focus on the deployment of the ecosystem's own services. Items marked with a ^ have already been implemented.
 
-### Deploy Skupper Operator
+<details>
+<summary> Hybrid Cloud Balancing </summary>
+
+<details>
+<summary> Deploy Skupper Operator </summary>
 
 If you want to try a cluster-wide installation, you don't need to create the `OperatorGroup` as it is already defined at the destination namespaces, so you just need to create the subscription at the correct namespaces, see below.
 
@@ -793,14 +1042,17 @@ oc apply -f ocp /20-Subscription-cluster.yaml
 # Create a Subscription in the `my-namespace` namespace
 oc apply -f ocp/20-Subscription.yaml
 ```
-
+</details>
+</details>
 
 ## 8. Duplication of Functionalities and Waste of Resources
+
+> **_NOTE:_** This part of the laboratory has already been provisioned, to focus on the deployment of the ecosystem's own services. Items marked with a ^ have already been implemented.
 
 0. **(Open Ecosistems services) Generic/transversal microservices:** Generic and transversal microservices, common services to energize the ecosystems of the industries.
 
 <details>
-<summary> Scenarios</summary>
+<summary> Scenarios </summary>
 
 ### Deploy applications
 
