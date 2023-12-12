@@ -50,7 +50,12 @@ It is important to address these problems with a strategic approach and consider
 
 ## Architecture
 
+```https://app.diagrams.net/#G1k04ZY8GSguBKeE2pBmFBMpn24OraFMvv
+```
+
 ![Open Hybrid Ecosystems](./images/hybrid-microservices-ecosystems.png)
+
+
 
 The lab consists of three Red Hat OpenShift Clusters.
 
