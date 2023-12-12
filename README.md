@@ -1,5 +1,7 @@
 # Hybrid cloud ecosystems
 
+> **NOTE: This laboratory has specific research and innovation purposes, configurations are assumed and omitted, which is why it is not recommended for a productive environment.**
+
 ## Justification
 
 Implementing microservices offers numerous benefits, but also presents challenges and potential problems when an architectural framework of microservices as ecosystems is not established.
