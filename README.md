@@ -1331,6 +1331,7 @@ skupper init
 ```
 
 </details>
+<details>
 
 <summary> Expose open ecosistem services </summary>
 
