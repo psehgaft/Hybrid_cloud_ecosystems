@@ -1258,11 +1258,11 @@ kubectl apply -f skupper/20-Subscription-cluster.yaml
 <details>
 <summary> Validate skupper-operator is running </summary>
 
-Look at the pods running in your `open-ecosistems-cross-services` namespace now. You should 
+Look at the pods running in your `open-ecosystems-cross-services` namespace now. You should 
 see a running pod for the `skupper-site-controller`.
 
 ```
-oc get pods -n open-ecosistems-cross-services
+oc get pods -n open-ecosystems-cross-services
 NAME                                     READY   STATUS    RESTARTS   AGE
 skupper-site-controller-d7b57964-gxms6   1/1     Running   0          39m
 ```
@@ -1271,13 +1271,13 @@ Now the Skupper Operator is running and you can create a site.
 At this point with most Operators, you would create a CR, however 
 the Skupper Operator manages your
 Skupper site by watching a `ConfigMap` named exclusively `skupper-site`
-in the namespace where it is running (in this case the `open-ecosistems-cross-services` namespace).
+in the namespace where it is running (in this case the `open-ecosystems-cross-services` namespace).
 
 </details>
 <details>
 <summary> Creating a new skupper site </summary>
 
-Create a `ConfigMap` named `skupper-site` in the `open-ecosistems-cross-services` namespace:
+Create a `ConfigMap` named `skupper-site` in the `open-ecosystems-cross-services` namespace:
 
 ```
 kubectl apply -f examples/skupper-site-interior.yaml
@@ -1286,10 +1286,10 @@ kubectl apply -f examples/skupper-site-interior.yaml
 Once the `ConfigMap` is created, Skupper Site Controller will initialize
 your Skupper site and you can verify everything is running properly if you
 see the `skupper-router` and the `skupper-service-controller` pods running
-in the `open-ecosistems-cross-services` namespace, in example:
+in the `open-ecosystems-cross-services` namespace, in example:
 
 ```sh
-oc get pods -n open-ecosistems-cross-servicese
+oc get pods -n open-ecosystems-cross-servicese
 NAME                                          READY   STATUS    RESTARTS   AGE
 skupper-router-8c6cc6d76-27562                1/1     Running   0          40s
 skupper-service-controller-57cdbb56c5-vc7s2   1/1     Running   0          34s
@@ -1298,7 +1298,7 @@ skupper-site-controller-d7b57964-gxms6        1/1     Running   0          51m
 
 You can now navigate to the Skupper console.
 
-The namespace in the example YAML is `open-ecosistems-cross-services`.
+The namespace in the example YAML is `open-ecosystems-cross-services`.
 
 Navigate to the `skupper` route and log in using the credentials you specified in YAML. The example YAML uses `admin/changeme`.
 
@@ -1333,20 +1333,20 @@ skupper init
 </details>
 <details>
 
-<summary> Expose open ecosistem services </summary>
+<summary> Expose open ecosystems services </summary>
 
-First, we will deploy the cross service on the OCP-01 and the ecosistem-demo service to OCP-02. Then, we’ll connect the cross with the ecosistem-demo.
+First, we will deploy the cross service on the OCP-01 and the ecosystem-demo service to OCP-02. Then, we’ll connect the cross with the ecosystem-demo.
 
 *On OCP-01*
 
 ```sh
-oc  create deployment open-ecosistems-demo --image quay.io/psehgaft/open-ecosistems-demo
+oc  create deployment open-ecosystems-demo --image quay.io/psehgaft/open-ecosystems-demo
 ```
 
 *On OCP-02*
 
 ```sh
-oc  create deployment open-ecosistems-cross --image quay.io/psehgaft/open-ecosistems-cross
+oc  create deployment open-ecosystems-cross --image quay.io/psehgaft/open-ecosystems-cross
 
 oc get svc
 ```
@@ -1354,16 +1354,16 @@ oc get svc
 *On OCP-01*
 
 ```sh
-$ oc expose deployment open-ecosistems-demo --port 8080
+$ oc expose deployment open-ecosystems-demo --port 8080
 service/hello-world-frontend exposed
 
-$ oc expose svc open-ecosistems-demo
+$ oc expose svc open-ecosystems-demo
 route.route.openshift.io/hello-world-frontend exposed
 
-$ curl open-ecosistems-demo.apps-crc.testing
+$ curl open-ecosystems-demo.apps-crc.testing
 ```
 
-skupper expose deployment open-ecosistems-cross --port 8080 --protocol http
+skupper expose deployment open-ecosystems-cross --port 8080 --protocol http
 
 </details>
 
