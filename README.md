@@ -1,4 +1,4 @@
-# Hybrid_cloud_ecosystems
+# Hybrid cloud ecosystems
 
 ## Justification
 
@@ -36,7 +36,7 @@ Implementing effective testing and continuous deployment strategies for microser
 Adopting a microservices architecture often involves a significant cultural and organizational change. Organizations must adapt to a small, independent team mentality.
 `Reference: Fowler, M. and Lewis, J. (2018). Microservices: the dark side.`
 
-7. Network Overload and Latency:
+7. Network Overload and Latency & Hybrid Cloud Balancing:
 
 Communication between microservices can introduce latency, and a poorly designed architecture can result in network overload, affecting overall performance.
 `Reference: Newman, S. (2015). Building microservices: detailed system design.`
@@ -1231,7 +1231,7 @@ Cluster-wide installation on OpenShift
 On OpenShift the `Subscription` needs to be defined in the `openshift-operators` namespace, like:
 
 ```sh
-kubectl apply -f examples/ocp/20-sub-cluster-wide.yaml
+kubectl apply -f skupper/20-Subscription-cluster.yaml
 ```
 
 </details>
@@ -1240,12 +1240,12 @@ kubectl apply -f examples/ocp/20-sub-cluster-wide.yaml
 <summary> Validate skupper-operator is running </summary>
 
 Look at the pods running in your `open-ecosistems-cross-services` namespace now. You should 
-see a running pod for the `open-ecosistems-cross-controller`.
+see a running pod for the `skupper-site-controller`.
 
 ```
 oc get pods -n open-ecosistems-cross-services
 NAME                                     READY   STATUS    RESTARTS   AGE
-open-ecosistems-cross-controller-d7b57964-gxms6   1/1     Running   0          39m
+skupper-site-controller-d7b57964-gxms6   1/1     Running   0          39m
 ```
 
 Now the Skupper Operator is running and you can create a site. 
@@ -1259,7 +1259,7 @@ in the namespace where it is running (in this case the `open-ecosistems-cross-se
 <details>
 <summary> Creating a new skupper site </summary>
 
-Create a `ConfigMap` named `skupper-site` in the `my-namespace` namespace:
+Create a `ConfigMap` named `skupper-site` in the `open-ecosistems-cross-services` namespace:
 
 ```
 kubectl apply -f examples/skupper-site-interior.yaml
@@ -1268,10 +1268,10 @@ kubectl apply -f examples/skupper-site-interior.yaml
 Once the `ConfigMap` is created, Skupper Site Controller will initialize
 your Skupper site and you can verify everything is running properly if you
 see the `skupper-router` and the `skupper-service-controller` pods running
-in the `my-namespace` namespace, in example:
+in the `open-ecosistems-cross-services` namespace, in example:
 
-```
-kubectl -n my-namespace get pods
+```sh
+oc get pods -n open-ecosistems-cross-servicese
 NAME                                          READY   STATUS    RESTARTS   AGE
 skupper-router-8c6cc6d76-27562                1/1     Running   0          40s
 skupper-service-controller-57cdbb56c5-vc7s2   1/1     Running   0          34s
@@ -1284,7 +1284,7 @@ You can now navigate to the Skupper console.
 $ skupper -n <namespace> status
 ```
 
-The namespace in the example YAML is `my-namespace`.
+The namespace in the example YAML is `open-ecosistems-cross-services`.
 
 Navigate to the `skupper` route and log in using the credentials you specified in YAML. The example YAML uses `admin/changeme`.
 
