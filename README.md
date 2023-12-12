@@ -157,6 +157,15 @@ ansible-playbook submariner/submarinercli-install.yml
 ```
 </details>
 
+<summary> ^ Install the Skupper command-line tool </summary>
+
+First, install the Skupper command-line tool on your Linux system.
+
+```sh
+curl https://skupper.io/install.sh | sh
+```
+</details>
+
 <details>
 <summary> ^ Required Environment Variables </summary>
 
@@ -785,7 +794,7 @@ oc get drcluster <drcluster_name_OCP-02> -o jsonpath='{.status.conditions[2].rea
 
 To validate that the OpenShift DR Cluster operator installation was successful on the *OCP-01 Primary managed cluster* and the *OCP-02 Secondary managed cluster* check for *CSV* *odr-cluster-operator* and pod *ramen-dr-cluster-operator* by running the following command:
 
-On OCP-01 and OCP-02
+*On OCP-01 and OCP-02*
 
 ```sh
 oc get csv,pod -n openshift-dr-system
@@ -797,7 +806,7 @@ You can also go to *OperatorHub* on each of the managed clusters and look to see
 
 Validate the status of the ODF mirroring daemon health on the Primary managed cluster and the Secondary managed cluster.
 
-On OCP-01 and OCP-02
+*On OCP-01 and OCP-02*
 
 ```sh
 oc get cephblockpool ocs-storagecluster-cephblockpool -n openshift-storage -o jsonpath='{.status.mirroringStatus.summary}{"\n"}'
@@ -1218,7 +1227,13 @@ IMAGE TODO
 > **_NOTE:_** This part of the laboratory has already been provisioned, to focus on the deployment of the ecosystem's own services. Items marked with a ^ have already been implemented.
 
 <details>
-<summary> ^ Deploy Skupper Operator (</summary>
+<summary> ^ Deploy Skupper Operator </summary>
+
+Skupper is a Layer 7 service interconnect that enables multicloud communication across Kubernetes clusters. There are a few reasons you might need to communicate between a local cluster and a remote one in development:
+
+A service is deployed on the remote cluster, and you want to consume it with a local cluster.
+A workload is high resource-consuming, and it is not feasible to deploy it on the local cluster given the available resources.
+An existing stage/test database service is deployed on a remote cluster, and your workload needs to connect to it.
 
 If you want to try a cluster-wide installation, you don't need to create the `OperatorGroup` as it is already defined at the destination namespaces, so you just need to create the subscription at the correct namespaces, see below.
 
@@ -1235,7 +1250,6 @@ kubectl apply -f skupper/20-Subscription-cluster.yaml
 ```
 
 </details>
-
 <details>
 <summary> Validate skupper-operator is running </summary>
 
@@ -1255,7 +1269,6 @@ Skupper site by watching a `ConfigMap` named exclusively `skupper-site`
 in the namespace where it is running (in this case the `open-ecosistems-cross-services` namespace).
 
 </details>
-
 <details>
 <summary> Creating a new skupper site </summary>
 
@@ -1280,18 +1293,73 @@ skupper-site-controller-d7b57964-gxms6        1/1     Running   0          51m
 
 You can now navigate to the Skupper console.
 
-```
-$ skupper -n <namespace> status
-```
-
 The namespace in the example YAML is `open-ecosistems-cross-services`.
 
 Navigate to the `skupper` route and log in using the credentials you specified in YAML. The example YAML uses `admin/changeme`.
 
-
 For more information, visit the official [Skupper website](https://skupper.io)
 </details>
 
+<details>
+<summary> Creating a new skupper site </summary>
+
+*On OCP-01 and OCP-02*
+
+1. Create a new proyect
+
+```sh
+oc new-project globex
+```
+
+*On OCP-01*
+
+1. Run the skupper init command to install the router in each namespace.
+
+```sh
+skupper init --cluster-local
+```
+
+*On OCP-02*
+
+```sh
+skupper init
+```
+
+</details>
+
+<summary> Expose open ecosistem services </summary>
+
+First, we will deploy the cross service on the OCP-01 and the ecosistem-demo service to OCP-02. Then, we’ll connect the cross with the ecosistem-demo.
+
+*On OCP-01*
+
+```sh
+oc  create deployment open-ecosistems-demo --image quay.io/psehgaft/open-ecosistems-demo
+```
+
+*On OCP-02*
+
+```sh
+oc  create deployment open-ecosistems-cross --image quay.io/psehgaft/open-ecosistems-cross
+
+oc get svc
+```
+
+*On OCP-01*
+
+```sh
+$ oc expose deployment open-ecosistems-demo --port 8080
+service/hello-world-frontend exposed
+
+$ oc expose svc open-ecosistems-demo
+route.route.openshift.io/hello-world-frontend exposed
+
+$ curl open-ecosistems-demo.apps-crc.testing
+```
+
+skupper expose deployment open-ecosistems-cross --port 8080 --protocol http
+
+</details>
 
 
 ## 8. Duplication of Functionalities and Waste of Resources
@@ -1306,15 +1374,222 @@ For more information, visit the official [Skupper website](https://skupper.io)
 ### Deploy applications
 
 <details>
-<summary> Create Proyects </summary>
+<summary> Hybrid cloud eccosistem </summary>
 
-Create several Projects for deploy applications
+#### Deploy Services
 
-```vars.yml
-oc adm new-project app-dev-$USER --display-name="Application Development"
-oc adm new-project app-test-$USER --display-name="Application Testing"
-oc adm new-project app-prod-$USER --display-name="Application Production"
+> **_IMPORTANT:_** If you are using `minikube` as one cluster, run `minikube tunnel` in a new terminal.
+
+As Kubernetes enables you to have cloud portability, the workload can be deployed on any Kubernetes context.
+Deploy the backend using the following three commands on all clusters and change only `WORKER_CLOUD_ID` value to differentiate between them.  The name of the cloud or the location/geography are useful to illustrate where the work is being conducted/transacted. 
+
+```[source, shell-session]
+kubectl create namespace hybrid
+kubectl -n hybrid apply -f backend.yml
+kubectl -n hybrid set env deployment/hybrid-cloud-backend WORKER_CLOUD_ID="localhost" # aws, azr, gcp
 ```
+
+The annotation has already been applied in the backend.yml file but if wish to apply it manually, use the following command.
+
+```[source, shell-session]
+kubectl annotate service hybrid-cloud-backend skupper.io/proxy=http
+```
+
+Deploy the frontend to your *main* cluster:
+
+The Kubernetes service is of type `LoadBalancer`.
+If you are deploying the frontend in your public cluster open `frontend.yml` file and modify Ingress configuration with your host:
+
+```[source, yaml]
+spec:
+  rules:
+  - host: ""
+```
+
+In your *main* cluster, deploy the frontend by calling:
+
+```[source, shell-session]
+kubectl apply -f frontend.yml
+```
+
+TIP: In case of OpenShift you can run: `oc expose service hybrid-cloud-frontend` after deploying frontend resource, and it is not required to modify the Ingress configuration. But of course, the first approach works as well in OpenShift.
+
+To find the frontend URL, on OpenShift use the Route
+
+```[source, shell-session]
+kubectl get routes | grep frontend
+```
+
+On vanilla Kubernetes, try the external IP of the Service
+
+```[source, shell-session]
+#AWS
+kubectl get service hybrid-cloud-frontend -o jsonpath="{.status.loadBalancer.ingress[0].hostname}"
+
+#Azure, GCP
+kubectl get service hybrid-cloud-frontend -o jsonpath="{.status.loadBalancer.ingress[0].ip}"
+```
+
+In your *main* cluster, init `skupper` and create the `connection-token`:
+
+```[source, shell-session]
+skupper init --console-auth unsecured # <1>
+
+Skupper is now installed in namespace 'hybrid'.  Use 'skupper status' to get more information.
+
+skupper status
+
+Skupper is installed in namespace '"hybrid"'. Status pending...
+```
+
+1. This makes anyone be able to access the Skupper UI to visualize the clouds. Fine for demos, not to be used in production.
+
+See the status of the skupper pods.
+It takes a bit of time (usually around 2 minutes) until the pods are running:
+
+```[source, shell-session]
+kubectl get pods 
+
+NAME                                        READY   STATUS    RESTARTS   AGE
+hybrid-cloud-backend-5cbd67d789-mfvbz       1/1     Running   0          3m55s
+hybrid-cloud-frontend-55bdf64c95-gk2tf      1/1     Running   0          3m27s
+skupper-router-dd7dfff55-tklgg              2/2     Running   0          59s
+skupper-service-controller-dc779b7c-5prhc   1/1     Running   0          56s
+```
+
+Finally create a token:
+
+```sh
+skupper token create token.yaml -t cert
+
+Connection token written to token.yaml
+```
+
+In *all the other clusters*, use the connection token created in the previous step:
+
+```[source, shell-session]
+skupper init
+skupper link create token.yaml
+```
+
+Check the service status on all clusters
+
+```[source, shell-session]
+skupper service status
+Services exposed through Skupper:
+╰─ hybrid-cloud-backend (http port 8080)
+   ╰─ Targets:
+      ╰─ app.kubernetes.io/name=hybrid-cloud-backend,app.kubernetes.io/version=1.0.0 name=hybrid-cloud-backend
+```
+
+Check the link status on the 2nd/3rd cluster
+
+```[source, shell-session]
+skupper link status
+Link link1 is active
+```
+
+This has been the short-version to get started, continue reading if you want to learn how to build the Docker images, deply them , etc.
+
+#### Skupper UI
+
+If you run:
+
+```[source, shell-session]
+
+kubectl get services 
+
+NAME                    TYPE           CLUSTER-IP      EXTERNAL-IP                                                              PORT(S)               AGE
+hybrid-cloud-backend    ClusterIP      172.30.157.62   <none>                                                                   8080/TCP              10m
+hybrid-cloud-frontend   LoadBalancer   172.30.70.80    acf3bee14b0274403a6f02dc062a3784-405180745.eu-west-1.elb.amazonaws.com   8080:32156/TCP        10m
+skupper                 ClusterIP      172.30.128.55   <none>                                                                   8080/TCP,8081/TCP     7m50s
+skupper-router          ClusterIP      172.30.7.7      <none>                                                                   55671/TCP,45671/TCP   7m53s
+skupper-router-local    ClusterIP      172.30.8.239    <none>                                                                   5671/TCP              7m53s                                                               5671/TCP              34m
+```
+
+### Services
+
+#### Backend
+
+If you want to build, push and deploy the service:
+
+```[source, shell-session]
+cd backend
+./mvnw clean package -DskipTests -Dquarkus.kubernetes.deploy=true -Pazure
+```
+
+If service is already pushed in quay.io, so you can skip the push part:
+
+```[source, shell-session]
+cd backend
+
+./mvnw clean package -DskipTests -Pazure -Dquarkus.kubernetes.deploy=true -Dquarkus.container-image.build=false -Dquarkus.container-image.push=false
+``` 
+
+#### Frontend
+
+If you want to build, push and deploy the service:
+
+```[source, shell-session]
+cd backend
+./mvnw clean package -DskipTests -Dquarkus.kubernetes.deploy=true -Pazure -Dquarkus.kubernetes.host=<your_public_host>
+```
+
+If service is already pushed in quay.io, so you can skip the push part:
+
+```[source, shell-session]
+cd backend
+
+./mvnw clean package -DskipTests -Pazr -Dquarkus.kubernetes.deploy=true -Dquarkus.container-image.build=false -Dquarkus.container-image.push=false
+```
+
+#### Cloud Providers
+
+The next profiles are provided: `-Pazr`, `-Paws`, `-Pgcp` and `-Plocal`, this just sets an environment variable to identify the cluster.
+
+#### Setting up Skupper
+
+Make sure you have a least the `backend` project deployed on 2 different clusters. The `frontend` project can be deployed to just one cluster.
+
+Here, we will make the assumption that we have it deployed in a local cluster *local* and a public cluster *public*.
+
+Make sure to have 2 terminals with separate sessions logged into each of your cluster with the correct namespace context (but within the same folder).
+
+##### Install the Skupper CLI 
+
+Follow the instructions provided https://skupper.io/start/index.html#step-1-install-the-skupper-command-line-tool-in-your-environment[here].
+
+##### Skupper setup
+
+. In your *public* terminal session : 
+
+```sh
+skupper init --id public
+skupper connection-token private-to-public.yaml
+```
+
+. In your *local* terminal session : 
+
+```sh
+skupper init --id private
+skupper connect private-to-public.yaml
+```
+
+##### Annotate the services to join to the Virtual Application Network
+
+. In the terminal for the *local* cluster, annotate the hybrid-cloud-backend service:
+
+```sh
+kubectl annotate service hybrid-cloud-backend skupper.io/proxy=http
+```
+
+. In the terminal for the *public* cluster, annotate the hybrid-cloud-backend service:
+
+```sh
+kubectl annotate service hybrid-cloud-backend skupper.io/proxy=http
+```
+
+Both services are now connected, if you scale one to 0 or it gets overloaded it will transparently load-balance to the other cluster.
 </details>
 
 </details>
