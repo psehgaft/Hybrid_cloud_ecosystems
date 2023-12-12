@@ -424,7 +424,8 @@ AWS credentials:
 
 In order to create a new OpenShift cluster in the AWS cloud we will need these keys to create a Provider Connection. On the left bar, select Credentials and then select Add Credential.
 
-![ACM add credential](./images/ACM-add-credential.png) #TODO#
+```![ACM add credential](./images/ACM-add-credential.png) #TODO#
+```
 
 You will need to provide connection details:
 
@@ -478,8 +479,8 @@ Click NEXT
 
 Change the region to *(Select us-west-1 or us-west-2)*
 
-![ACM add cluster](./images/ACM-add-credential.png) #TODO#
-
+```![ACM add cluster](./images/ACM-add-credential.png) #TODO#
+```
 
 </details>
 
@@ -495,11 +496,13 @@ Please note that the name you use for the cluster is not relevant, but it makes 
 Once finished click *NEXT*, *NEXT* and *GENERATE CODE*.
 
 
-![ACM import cluster](./images/ACM-add-credential.png) #TODO#
+```![ACM import cluster](./images/ACM-add-credential.png) #TODO#
+```
 
 Once complete, select *COPY COMMAND*
 
-![ACM import cluster copy command](./images/ACM-add-credential.png) #TODO#
+```![ACM import cluster copy command](./images/ACM-add-credential.png) #TODO#
+```
 
 From a terminal, login to the target Kubernetes cluster you want to import.  Then paste and run the command you just copied.
 
@@ -905,12 +908,13 @@ oc apply -f multiclusterobservability_cr.yaml
 - Log in to the ACM console, and navigate to *Observe environments -> Overview.*
 - Click on the Grafana link in the top right to view the metrics from the managed clusters.  `Please note: it will take a few minutes for the metrics to become visible on the dashboard.`
 
-IMAGE TODO
+```IMAGE TODO
+```
 
 You should shortly see something like the below
 
-IMAGE TODO
-
+```IMAGE TODO
+```
 
 </details>
 
@@ -1176,11 +1180,13 @@ The importance of these industry verticals may change over time due to technolog
 TPrerequisites:  
 - On the local cluster add a label:  *environment=dev*.
 
-IMAGE TODO
+```IMAGE TODO
+```
 
 - On the new cluster you provisioned via ACM double check you added the label:  *environment=prod*.
 
-IMAGE TODO
+```IMAGE TODO
+```
 
 1. In RHACM, navigate to Applications and click Create application and select Subscription. 
 Enter the following information:
@@ -1195,34 +1201,40 @@ Enter the following information:
 
 Next to Create application, make sure the YAML dial is ON
 
-IMAGE TODO
+```IMAGE TODO
+```
 
 Under the S*elect clusters for application deployment*, select *Deploy application resources on clusters with all specified labels*
 **Cluster sets**: global
 **Label**: environment
 **Value**: dev
 
-IMAGE TODO
+```IMAGE TODO
+```
 
 Click Create and after a few minutes you will see the application and all its components available in RHACM.
 
-IMAGE TODO
+```IMAGE TODO
+```
 
 If everything was done correctly you should be able to see the application deployed to local-cluster. Go to *Applications*, and make sure to filter by subscription as the image below:
 
-IMAGE TODO
+```IMAGE TODO
+```
 
 This will show only the apps deployed from ACM, instead of all the existing apps in the managed clusters. 
 
 Click on the *open-education application* and have a look at the topology view
 
-IMAGE TODO
+```IMAGE TODO
+```
 
 Select the Route and click on the URL provided, you should see the Book Import application
 
 See the Book Import user interface.
 
-IMAGE TODO
+```IMAGE TODO
+```
 
 
 </details>
