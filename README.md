@@ -1612,6 +1612,227 @@ kubectl annotate service hybrid-cloud-backend skupper.io/proxy=http
 Both services are now connected, if you scale one to 0 or it gets overloaded it will transparently load-balance to the other cluster.
 </details>
 
+<details>
+<summary> Creating an Application </summary>
+
+
+</details>
+
+
+</details>
+
+<details>
+<summary> Deploying Ansible Automation Platform 2 </summary>
+
+<details>
+<summary> Install the Operator Ansible Automation Platform 2 </summary>
+
+1. For this exercise, we’ll start by accessing the Operator Hub in the OpenShift console*(local-cluster/ACM Hub Cluster)* to deploy AAP. So, for this, go to the Operator Hub and select the Ansible Automation Platform.
+
+Make sure to select channel stable-2.4-cluster-scoped and click INSTALL.
+
+After a couple of minutes, the APP operator installation will finish. Verify that pods are running by either accessing *Workloads → Pods* under the AAP namespace, or by running this command in the bastion machine: 
+
+```sh
+oc get pods -n aap
+```
+
+There should be 4 pods in a running state.
+
+There should be 4 pods in a running state.
+
+2. Deploy the Automation Controller
+
+After the operator is successfully deployed, we’ll need to have the Automation Controller instance. Access the AAP operator dashboard(you can do this by clicking on Installed Operators and clicking on the AAP Operator), click in the Automation Controller tab. Then click on Create *AutomationController*:
+
+Now, a form will be presented to you. Just give your AutomationController instance a name, like aap2, and hit CREATE. This installation will also take a couple of minutes.
+
+Verify this installation, again, by checking the pods in the aap namespace. Now, there should be 7 pods in a running state. 
+
+```sh
+oc get pods -n aap
+```
+
+3. Access the AAP dashboard
+
+If everything was done correctly, shortly we’ll be able to see an AAP route deployed. Before accessing the URL, still in the aap namespace, navigate over to Secrets and get the AAP admin password in the secret <name-of-aap-controller-instance>-admin-password. In this case, app2-admin-password.
+
+Click on the secret name and you will be able to copy the password at the bottom of the following page. 
+Now we’re all set. Access *Networking → Routes*, and click on the AAP route. 
+
+> **_Note:_** you may see that AAP is starting up and upgrading components, while the WEB UI is setting up. This should just take less than a minute.
+
+Use *“admin”* as username and the retrieved secret as password to login to AAP.
+
+4. Configure AAP
+
+Now that you’re logged in, let’s proceed with the initial configuration.
+First of all, when you click on the AAP url, you will be presented with a Subscription dialog window.  Click on username/password and provide your Red Hat credentials (from your account in access.redhat.com, not Red Hat SSO). You’ll need an Ansible subscription in order to be able to use it. Feel free to use one of your trials and/or the employee SKU.
+
+Select one and click *NEXT*.
+
+Disable the User Analytics and the Automation Analytics for AAP, we don’t need those for our example. Click *NEXT*.
+
+Lastly, accept the end user license agreement by clicking on *SUBMIT*.
+
+5. Generate a token for ACM
+
+If everything was done correctly it will redirect to the controller page. In the Ansible dashboard, generate a token for the *admin* user.  Go to *Users*, click *admin*, select *TOKENS*, then click the *ADD* button.  Add a short description “*Token for use by ACM*”, update the *SCOPE* to *Write*, then click *SAVE*.  
+
+</details>
+
+<details>
+<summary> Deploying a ServiceNow Developer Instance </summary>
+
+The purpose of this exercise is to take advantage of the Ansible Automation Platform (AAP) you just deployed to kick off Ansible Jobs (tied to prehook or posthook tasks in the application lifecycle of ACM.  
+
+A pre hook will kick off an Ansible job before the application creation / modification.
+A post hook will kick off an Ansible job after the application creation / modification.
+
+In the following example the Ansible job will trigger the creation of ServiceNow Change Requests. Perform this step if you would like to show or learn how this integration works.  You will take advantage of this within the application lifecycle engine.
+
+To deploy your own instance of ServiceNow, please visit https://developer.servicenow.com
+Select Sign up and Start Building.
+
+After signing up and requesting your developer ServiceNow instance.
+
+You can select the Utah version(latest) and soon, you will have an instance URL that looks like this:  https://dev#####.service-now.com.
+
+Make note of your instance URL, your admin username and password.
+
+</details>
+
+<details>
+<summary> Configure Ansible to trigger a job that will create a ServiceNow Change Request </summary>
+
+*Create a ServiceNow Credential Type*
+
+In Ansible Automation Platform we need to create a *Credential Type* for ServiceNow, and then add the *Credentials* for our ServiceNow developer instance.
+
+- Select *Credential Types*, under *Administration*, in the left menu and then click *ADD*.
+- Name: ServiceNow
+- Input Configuration:
+
+```yml
+fields:
+  - id: SNOW_USERNAME
+    type: string
+    label: Service Now Username
+  - id: SNOW_INSTANCE
+    type: string
+    label: Service Now Instance Name (https://devXXXXX.service-now.com)
+  - id: SNOW_PASSWORD
+    type: string
+    label: Service Now Password
+    secret: true
+required:
+  - SNOW_USERNAME
+  - SNOW_INSTANCE
+  - SNOW_PASSWORD
+```
+
+- Add the following text to the *INJECTOR CONFIGURATION* field
+
+```yml
+extra_vars:
+  snow_instance: '{{ SNOW_INSTANCE }}'
+  snow_password: '{{ SNOW_PASSWORD }}'
+  snow_username: '{{ SNOW_USERNAME }}'
+```
+
+- *SAVE* this new credential type
+
+Add the ServiceNow Credentials
+
+- Navigate to *Resources → Credentials*.  Click on *ADD*.  
+- *Name*: ServiceNow Credentials 
+- *CREDENTIAL TYPE* field, select *ServiceNow*
+- *ORGANIZATION* field, select *Default*
+- In the *USERNAME* and *INSTANCE NAME *add admin and the instance name to your developer instance.  Will be something like: https://dev#####.service-now.com  
+- In the *PASSWORD* field, in get the password from your user settings in the ServiceNow dashboard/website. Then *SAVE*.
+
+Create an Ansible Project
+
+- In Ansible we need to create a Project
+- Select Projects, under Resources, in the left menu.  Click on ADD.  Enter snow-create-change-record in the NAME field
+- Set the ORGANIZATION field to Default
+- Set the SCM TYPE to Git
+- Set the *SCM URL* to:  https://github.com/psehgaft/ansible_snow
+- Click *SAVE*
+
+Create an Ansible Job Template
+
+In Ansible we need to create a *Job Template*.
+
+- Select *Templates*, under *Resources*, in the left menu.  
+- *Click* on *ADD* then Add *Job Template*.  
+    - *NAME*: snow-create-change-record 
+    - *INVENTORY* field search and select Demo Inventory, and check PROMPT ON LAUNCH 
+    - *PROJECT*: snow-create-change-record 
+    - *PLAYBOOK*: select servicenow_changerequest.yml
+    - *CREDENTIALS*: from the dropdown select ServiceNow, and select ServiceNow Credentials Click SELECT
+    - *VARIABLES* field check PROMPT ON LAUNCH 
+- Scroll all the way to the bottom, leave everything as default and click *SAVE*
+- Success will indicate it can communicate with ServiceNow and it successfully created a Change Request in ServiceNow
+
+To verify all was configured properly click the *Launch Button*.
+Click *NEXT*, *NEXT* and *LAUNCH*.
+
+Verify that the job ran successfully by looking at the output.
+
+You can also look in your ServiceNow instance.
+
+</details>
+
+<details>
+<summary> Create AAP credential in ACM </summary>
+
+Here, we are going to set up the credential which is going to allow ACM to interact with our AAP instance. Click on *Credentials* on the left menu and select *Add Credential* button.
+
+- *Credential type*: Ansible Automation Platform
+- *Credential name*: aapaccess
+- *Namespace*: open-cluster-management
+- *Click NEXT*
+
+For *Ansible Tower Host* enter you Ansible instance URL, you will find this information on previous screen if not check the *ROUTES* on your *HUB* Cluster
+
+For *Ansible Tower token* enter the admin user token you generated earlier
+
+In order to save, click *NEXT* and *ADD*. You’ll be redirected to the *Credentials* page.
+
+</details>
+
+
+<details>
+<summary> Create an application to take advantage of the ACM - Ansible integration </summary>
+
+The purpose of this short section is to show how ACM integration with Ansible will kick off an Ansible Job.  In this case the Ansible Job will run a playbook that will trigger the creation of a ServiceNow Change Request, exactly like we did and saw in the previous section.
+
+Within ACM navigate to the Applications menu on the left, and click *Create application → Subscription*. Enter the following information:
+
+
+- *Name*: book-import2
+- *Namespace*: book-import2 
+
+Under repository types, select the GIT repository
+
+- *URL*:  https://github.com/levenhagen/book-import.git
+- *Branch*:  prehook
+- *Path*:  book-import
+
+Expand the “*Configure automation for prehook and posthook*” dropdown menu.
+
+Ansible Automation Platform credential: aapaccess
+
+Select Deploy application resources only on clusters matching specified labels
+
+- Label: env
+- Value: prod
+
+SAVE the application.  Give this a few minutes.  The application will complete and in the application topology view you will see the Ansible prehook, and you can infer that it’s a ServiceNow change request creation.
+
+</details>
+
 </details>
 
 ---
