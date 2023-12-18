@@ -163,7 +163,8 @@ sudo dnf install -y setuptool
 ansible-playbook submariner/submarinercli-install.yml
 ```
 </details>
-
+<details>
+    
 <summary> ^ Install the Skupper command-line tool </summary>
 
 First, install the Skupper command-line tool on your Linux system.
