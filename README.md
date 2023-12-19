@@ -1,6 +1,6 @@
 # Hybrid cloud ecosystems
 
-> **CONTRIBUTORS: **Luis Santiagio Vazquez|
+> **CONTRIBUTORS: **Luis Santiagio Vazquez,
 
 > **NOTE: This laboratory has specific research and innovation purposes, configurations are assumed and omitted, which is why it is not recommended for a productive environment.**
 
