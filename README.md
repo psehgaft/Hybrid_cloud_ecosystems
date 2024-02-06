@@ -1868,6 +1868,14 @@ SAVE the application.  Give this a few minutes.  The application will complete a
 
 </details>
 
+<details>
+<summary> Deploy GitOps </summary>
+</details>
+
+<details>
+<summary> Deploy Pipelines </summary>
+</details>
+
 </details>
 
 ---
