@@ -1,6 +1,25 @@
 Hybrid_cloud_ecosystems
-Copyright 2023 Heber Romero Tellez <psehgaft@gmail.com>
+Copyright 2023 Heber Romero Tellez and contributors
 
-Autoría y mantenimiento de este repositorio: Heber Romero Tellez <psehgaft@gmail.com> — https://github.com/psehgaft
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
-Este proyecto cuenta con contribuciones de terceros (entre ellos fzompa y Luis Santiagio Vazquez, ver README). La licencia GPL-3.0 que acompaña al proyecto y los copyrights de todos los contribuidores se conservan sin cambios: un cambio de licencia requeriría el consentimiento de todos los titulares de derechos.
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+Titulares de derechos / Copyright holders:
+- Heber Romero Tellez <psehgaft@gmail.com> — autor principal y mantenedor
+- Francisco Tzulkin Zompa Camacho («fzompa») — contribuidor
+- Luis Santiagio Vazquez — contribuidor
+
+Nota de relicenciamiento: este repositorio incluía la plantilla GPL-3.0 que GitHub
+ofrece al crear un repositorio. Todos los titulares de derechos han otorgado su
+consentimiento para el cambio de licencia (confirmado por Heber Romero Tellez el
+2026-11-13), por lo que el proyecto se publica desde ahora bajo la Apache
+License 2.0.
